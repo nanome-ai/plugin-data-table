@@ -5,8 +5,10 @@ import ToastService from 'primevue/toastservice'
 import router from './router'
 
 import Button from 'primevue/button'
+import Checkbox from 'primevue/checkbox'
 import Dropdown from 'primevue/dropdown'
 import InputText from 'primevue/inputtext'
+import Menu from 'primevue/menu'
 import MultiSelect from 'primevue/multiselect'
 import Toast from 'primevue/toast'
 
@@ -18,8 +20,10 @@ import 'primeicons/primeicons.css'
 const app = createApp(App)
 
 app.component('Button', Button)
+app.component('Checkbox', Checkbox)
 app.component('Dropdown', Dropdown)
 app.component('InputText', InputText)
+app.component('Menu', Menu)
 app.component('MultiSelect', MultiSelect)
 app.component('Toast', Toast)
 

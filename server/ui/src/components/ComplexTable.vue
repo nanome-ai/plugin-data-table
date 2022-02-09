@@ -1,6 +1,6 @@
 <script setup>
-import { ref, watch } from 'vue'
-import { useVModel } from '../composables.js'
+import { computed, ref } from 'vue'
+import { useMux, useVModel } from '../composables.js'
 
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -9,36 +9,37 @@ import Image from 'primevue/image'
 const props = defineProps({
   columns: Array,
   complexIndex: Number,
+  hiddenFrames: Array,
   images: Object,
+  loading: Boolean,
   modelValue: Array,
-  selectedFrame: Object
+  multiSelect: Boolean,
+  nameColumn: String,
+  reorderable: Boolean,
+  selectedFrame: Object,
+  selectedRows: Array
 })
 
-const emit = defineEmits(['update:modelValue', 'update:selectedFrame'])
+const emit = defineEmits([
+  'update:modelValue',
+  'update:selectedFrame',
+  'update:selectedRows'
+])
 
 const data = useVModel(props, emit)
 const selectedFrame = useVModel(props, emit, 'selectedFrame')
+const selectedRows = useVModel(props, emit, 'selectedRows')
 
-const selectedColumns = ref([...props.columns])
 const sortField = ref(null)
+const selection = useMux(() => props.multiSelect, selectedRows, selectedFrame)
 
-watch(
-  () => props.columns,
-  () => {
-    selectedColumns.value = [...props.columns]
+const filteredColumns = computed(() => {
+  return props.columns.filter(c => c !== props.nameColumn)
+})
 
-    // hide columns that have > 30 char data
-    data.value.forEach(o => {
-      Object.entries(o).forEach(([key, value]) => {
-        if (value.length > 30) {
-          const index = selectedColumns.value.indexOf(key)
-          if (index !== -1) selectedColumns.value.splice(index, 1)
-        }
-      })
-    })
-  },
-  { immediate: true }
-)
+const filteredRows = computed(() => {
+  return data.value.filter(row => !props.hiddenFrames.includes(row.index))
+})
 
 const getImage = index => {
   const id = props.complexIndex + '-' + index
@@ -56,29 +57,35 @@ const onRowReorder = e => {
 </script>
 
 <template>
-  <MultiSelect
-    v-model="selectedColumns"
-    :options="props.columns"
-    :max-selected-labels="0.1"
-    class="mx-2"
-    placeholder="toggle columns"
-    selected-items-label="toggle columns"
-  />
-
-  <div class="mt-2 max-w-full max-h-full overflow-x-scroll">
+  <div class="mt-2 max-w-full max-h-full overflow-auto">
     <DataTable
-      v-model:selection="selectedFrame"
+      v-model:selection="selection"
       v-model:sortField="sortField"
-      :loading="!data.length"
-      :value="data"
-      selection-mode="single"
+      :loading="!data.length || props.loading"
+      :value="filteredRows"
+      :selection-mode="props.multiSelect ? 'multiple' : 'single'"
+      :meta-key-selection="false"
       reorderable-columns
       removable-sort
       @column-reorder="onColumnReorder"
       @row-reorder="onRowReorder"
     >
-      <Column :reorderable-column="false" header-class="w-3rem" row-reorder />
-      <Column field="index" header="Index" body-class="text-center" sortable>
+      <Column
+        v-if="props.reorderable"
+        :reorderable-column="false"
+        header-class="w-3rem"
+        row-reorder
+      />
+      <Column
+        v-if="props.multiSelect"
+        selection-mode="multiple"
+        header-class="w-3rem"
+      >
+        <template #body="{ data }">
+          <Checkbox v-model="selection" :value="data" @click.stop />
+        </template>
+      </Column>
+      <Column field="index" header="Frame" body-class="text-center" sortable>
         <template #body="{ data }">{{ data.index + 1 }}</template>
       </Column>
       <Column field="image" header="Image" body-class="py-0 text-center">
@@ -95,7 +102,14 @@ const onRowReorder = e => {
         </template>
       </Column>
       <Column
-        v-for="col in props.columns.filter(c => selectedColumns.includes(c))"
+        :key="nameColumn"
+        :field="nameColumn"
+        :header="nameColumn"
+        body-class="text-center"
+        sortable
+      />
+      <Column
+        v-for="col in filteredColumns"
         :key="col"
         :field="col"
         :header="col"
@@ -105,3 +119,11 @@ const onRowReorder = e => {
     </DataTable>
   </div>
 </template>
+
+<style scoped>
+:deep(.p-datatable-thead) {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+</style>

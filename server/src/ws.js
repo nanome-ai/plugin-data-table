@@ -6,20 +6,32 @@ const send = (ws, type, data) => {
   ws.send(JSON.stringify({ type, data }))
 }
 
-const broadcast = (session, type, data, toPlugin = null) => {
+const broadcast = (ws, type, data, toPlugin = null) => {
+  const logType = toPlugin
+    ? 'send_plugin'
+    : toPlugin !== null
+    ? 'send_clients'
+    : 'broadcast'
+
+  if (type !== 'image') {
+    const debug = type === 'data' ? '---' : data
+    console.log(logType, ws.session, type, debug)
+  }
+
   wss.clients.forEach(client => {
-    if (client.session !== session) return
+    if (client === ws) return
+    if (client.session !== ws.session) return
     if (toPlugin !== null && client.plugin !== toPlugin) return
     send(client, type, data)
   })
 }
 
-const send_clients = (session, type, data) => {
-  broadcast(session, type, data, false)
+const send_clients = (ws, type, data) => {
+  broadcast(ws, type, data, false)
 }
 
-const send_plugin = (session, type, data) => {
-  broadcast(session, type, data, true)
+const send_plugin = (ws, type, data) => {
+  broadcast(ws, type, data, true)
 }
 
 const onMessage = ws => e => {
@@ -48,7 +60,7 @@ const onMessage = ws => e => {
     case 'join':
       if (sessions[data]) {
         ws.session = data
-        send_plugin(ws.session, type)
+        send_plugin(ws, type)
       } else {
         send(ws, 'error', `Invalid session "${data}"`)
         ws.close()
@@ -57,15 +69,16 @@ const onMessage = ws => e => {
     case 'complexes':
     case 'data':
     case 'image':
-      send_clients(ws.session, type, data)
+      send_clients(ws, type, data)
+      break
+    case 'delete-frames':
+    case 'reorder-frames':
+    case 'split-frames':
+      send_plugin(ws, type, data)
       break
     case 'select-complex':
     case 'select-frame':
-      if (ws.plugin) {
-        send_clients(ws.session, type, data)
-      } else {
-        broadcast(ws.session, type, data)
-      }
+      broadcast(ws, type, data)
       break
     default:
       send(ws, 'error', `Unknown command "${type}"`)
@@ -74,10 +87,9 @@ const onMessage = ws => e => {
 }
 
 const onClose = ws => () => {
-  if (ws.plugin) {
-    delete sessions[ws.session]
-    broadcast(ws.session, 'close')
-  }
+  if (!ws.plugin) return
+  delete sessions[ws.session]
+  broadcast(ws, 'close')
 }
 
 const onConnection = ws => {
@@ -90,7 +102,21 @@ const onConnection = ws => {
   ws.on('pong', () => (ws.alive = true))
 }
 
+const killInactive = () => {
+  wss.clients.forEach(ws => {
+    if (!ws.alive) {
+      ws.terminate()
+      return
+    }
+    ws.alive = false
+    ws.ping()
+  })
+}
+
 exports.init = server => {
   wss = new WebSocket.WebSocketServer({ server, path: '/ws' })
   wss.on('connection', onConnection)
+
+  const id = setInterval(killInactive, 30000)
+  wss.on('close', () => clearInterval(id))
 }

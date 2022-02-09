@@ -1,4 +1,5 @@
 import nanome
+from nanome.api.structure import Complex
 from nanome.util import async_callback, Logs
 
 from cairosvg import svg2png
@@ -6,6 +7,7 @@ from rdkit import Chem
 from rdkit.Chem import AllChem, Draw
 
 import argparse
+import asyncio
 import base64
 import json
 import os
@@ -19,44 +21,84 @@ Draw.DrawingOptions.atomLabelFontSize = 40
 Draw.DrawingOptions.dotsPerAngstrom = 100
 Draw.DrawingOptions.bondLineWidth = 8
 
+IS_DOCKER = os.path.exists('/.dockerenv')
+
 class WebTable(nanome.AsyncPluginInstance):
     @async_callback
     async def start(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.temp_sdf = tempfile.NamedTemporaryFile(delete=False, suffix='.sdf', dir=self.temp_dir.name)
 
-        self.server_url = self.custom_data[0]
-        self.session = '-'.join(''.join(random.choices(string.ascii_lowercase, k=3)) for _ in range(3))
-        self.ws = await websockets.connect(f'ws://web-table-server/ws')
+        self.url = self.custom_data[0]
+        self.server_url = 'web-table-server' if IS_DOCKER else self.url
+        self.session = ''.join(random.choices(string.ascii_lowercase, k=4))
+
         self.selected_complex = None
         self.selected_frame = None
-        self.ignore_next_update = False
+        self.selected_is_conformer = False
+        self.selected_num_frames = 0
+        self.ignore_next_update = 0
 
-        await self.ws_send('host', self.session)
+        await self.ws_connect()
         self.on_run()
+        self.ws_loop()
+
+    async def ws_connect(self):
+        ws_url = f'ws://{self.server_url}/ws'
+        Logs.debug(f'connecting to {ws_url}')
 
         while True:
-            m = await self.ws.recv()
-            msg = json.loads(m)
-            data = msg.get('data')
+            try:
+                self.ws = await websockets.connect(ws_url)
+                break
+            except:
+                await asyncio.sleep(1)
 
-            if msg['type'] == 'join':
-                self.update_complexes()
-            elif msg['type'] == 'select-complex':
-                await self.select_complex(data)
-            elif msg['type'] == 'select-frame':
-                await self.select_frame(data)
-
-    def on_run(self):
-        self.open_url(f'http://{self.server_url}/{self.session}')
-
-    @async_callback
-    async def on_stop(self):
-        await self.ws.close()
+        Logs.debug(f'connected to {ws_url}')
+        await self.ws_send('host', self.session)
 
     async def ws_send(self, type, data):
         msg = json.dumps({'type': type, 'data': data})
         await self.ws.send(msg)
+
+    @async_callback
+    async def ws_loop(self):
+        while True:
+            try:
+                m = await asyncio.wait_for(self.ws.recv(), timeout=0.1)
+            except asyncio.TimeoutError:
+                continue
+            except websockets.exceptions.ConnectionClosedError:
+                await self.ws_connect()
+                continue
+
+            msg = json.loads(m)
+            type = msg.get('type')
+            data = msg.get('data')
+
+            Logs.debug('recv', type, data)
+
+            if type == 'join':
+                self.update_complexes()
+            elif type == 'delete-frames':
+                await self.delete_frames(data)
+            elif type == 'reorder-frames':
+                await self.reorder_frames(data)
+            elif type == 'select-complex':
+                await self.select_complex(data)
+            elif type == 'select-frame':
+                await self.select_frame(data)
+            elif type == 'split-frames':
+                await self.split_frames(data)
+
+            Logs.debug('done', type)
+
+    def on_run(self):
+        self.open_url(f'{self.url}/{self.session}')
+
+    @async_callback
+    async def on_stop(self):
+        await self.ws.close()
 
     @async_callback
     async def update_complexes(self):
@@ -72,30 +114,117 @@ class WebTable(nanome.AsyncPluginInstance):
 
     @async_callback
     async def on_complex_updated(self, complex):
+        Logs.debug('complex updated', complex.index)
         if complex.index != self.selected_complex.index:
             return
+
+        self.selected_complex = complex
         if self.ignore_next_update:
-            self.ignore_next_update = False
+            self.ignore_next_update -= 1
             return
 
-        frame = self.get_selected_frame(complex)
-        await self.ws_send('select-frame', frame)
+        if self.selected_is_conformer:
+            num_frames = next(complex.molecules).conformer_count
+        else:
+            num_frames = len(list(complex.molecules))
+
+        if num_frames != self.selected_num_frames:
+            await self.select_complex(complex.index)
+        else:
+            frame = self.get_selected_frame(complex)
+            await self.ws_send('select-frame', frame)
+
+    def get_selected_frame(self, complex):
+        if self.selected_is_conformer:
+            return next(complex.molecules).current_conformer
+        return complex.current_frame
 
     async def select_complex(self, index):
         complexes = await self.request_complexes([index])
-        if len(complexes) == 0:
+        if not complexes:
             return
 
         complex = complexes[0]
-        self.selected_is_conformer = len(list(complex.molecules)) == 1
-
         self.selected_complex = complex
+        self.selected_is_conformer = len(list(complex.molecules)) == 1
         complex.register_complex_updated_callback(self.on_complex_updated)
-        frame = self.get_selected_frame(complex)
 
+        await self.update_table()
+
+    async def select_frame(self, index):
+        if self.selected_is_conformer:
+            next(self.selected_complex.molecules).set_current_conformer(index)
+        else:
+            self.selected_complex.set_current_frame(index)
+
+        await self.update_complex()
+
+    async def delete_frames(self, indices):
+        indices = sorted(indices, reverse=True)
+        if self.selected_is_conformer:
+            molecule = next(self.selected_complex.molecules)
+            for index in indices:
+                molecule.delete_conformer(index)
+        else:
+            for index in indices:
+                del self.selected_complex._molecules[index]
+
+        await self.update_complex()
+        await self.update_table()
+
+    async def reorder_frames(self, indices):
+        if self.selected_is_conformer:
+            molecule = next(self.selected_complex.molecules)
+            num_frames = molecule.conformer_count
+            for i, index in enumerate(indices):
+                molecule.copy_conformer(index, num_frames + i)
+            for _ in range(num_frames):
+                molecule.delete_conformer(0)
+        else:
+            molecules = list(self.selected_complex.molecules)
+            self.selected_complex._molecules = [molecules[i] for i in indices]
+            for molecule in self.selected_complex.molecules:
+                molecule.index = -1
+
+        await self.update_complex()
+        await self.update_table()
+
+    async def split_frames(self, data):
+        indices = data['indices']
+        single = data['single']
+        name_column = data['name_column']
+        source = self.selected_complex.convert_to_frames()
+        complexes = []
+
+        if single:
+            complex = Complex()
+            complex.name = source.name
+            for index in indices:
+                complex.add_molecule(source._molecules[index])
+            complexes.append(complex)
+        else:
+            for index in indices:
+                complex = Complex()
+                molecule = source._molecules[index]
+                complex.name = molecule.associated[name_column]
+                complex.add_molecule(molecule)
+                complexes.append(complex)
+
+        Complex.align_origins(source, *complexes)
+        await self.update_structures_deep(complexes)
+        await self.delete_frames(indices)
+
+    async def update_complex(self):
+        self.ignore_next_update += 1
+        await self.update_structures_deep([self.selected_complex])
+
+    async def update_table(self):
+        frame = self.get_selected_frame(self.selected_complex)
+
+        complex = self.selected_complex.convert_to_frames()
+        complex.index = self.selected_complex.index
+        self.selected_num_frames = len(list(complex.molecules))
         data = []
-        complex = complex.convert_to_frames()
-        complex.index = complexes[0].index
 
         for i, mol in enumerate(complex.molecules):
             data.append({'index': i, **mol.associated})
@@ -103,22 +232,6 @@ class WebTable(nanome.AsyncPluginInstance):
         await self.ws_send('data', data)
         await self.ws_send('select-frame', frame)
         await self.generate_images(complex)
-
-    async def select_frame(self, index):
-        if self.selected_complex is None:
-            return
-
-        self.ignore_next_update = True
-        if self.selected_is_conformer:
-            next(self.selected_complex.molecules).set_current_conformer(index)
-        else:
-            self.selected_complex.set_current_frame(index)
-        await self.update_structures_deep([self.selected_complex])
-
-    def get_selected_frame(self, complex):
-        if self.selected_is_conformer:
-            return next(complex.molecules).current_conformer
-        return complex.current_frame
 
     async def generate_images(self, complex, frame=None):
         try:
