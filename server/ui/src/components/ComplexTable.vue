@@ -65,6 +65,7 @@ const onRowReorder = e => {
       :value="filteredRows"
       :selection-mode="props.multiSelect ? 'multiple' : 'single'"
       :meta-key-selection="false"
+      data-key="index"
       reorderable-columns
       removable-sort
       @column-reorder="onColumnReorder"

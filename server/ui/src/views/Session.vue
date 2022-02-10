@@ -137,6 +137,10 @@ ws.connect()
     <div
       class="flex flex-column surface-card max-w-full max-h-full min-w-2 px-4 shadow-2 border-round text-center"
     >
+      <div class="absolute bottom-0 right-0 p-2 text-300">
+        {{ props.id }}
+      </div>
+
       <div v-if="status === STATUS.OFFLINE" class="py-4">
         <div>Disconnected</div>
         <div class="py-4">
@@ -163,7 +167,7 @@ ws.connect()
               class="w-15rem"
               option-label="name"
               option-value="index"
-              placeholder="Select a complex"
+              placeholder="select a complex"
               @change="selectComplex"
             />
           </div>
@@ -187,7 +191,7 @@ ws.connect()
                 v-model="nameColumn"
                 :options="columns"
                 class="w-15rem"
-                placeholder="Select name column"
+                placeholder="no name column"
               />
             </div>
           </template>
