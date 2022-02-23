@@ -6,7 +6,9 @@ import router from './router'
 
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
+import Chip from 'primevue/chip'
 import Dropdown from 'primevue/dropdown'
+import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
 import Menu from 'primevue/menu'
 import MultiSelect from 'primevue/multiselect'
@@ -21,7 +23,9 @@ const app = createApp(App)
 
 app.component('Button', Button)
 app.component('Checkbox', Checkbox)
+app.component('Chip', Chip)
 app.component('Dropdown', Dropdown)
+app.component('InputNumber', InputNumber)
 app.component('InputText', InputText)
 app.component('Menu', Menu)
 app.component('MultiSelect', MultiSelect)

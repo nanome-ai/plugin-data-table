@@ -12,6 +12,7 @@ const ws = useWS(props.id)
 const { complexes, data, images, status } = ws
 const loading = ref(true)
 const columns = ref([])
+const columnTypes = ref({})
 
 const selectedColumns = ref([...columns.value])
 const selectedComplex = ref(null)
@@ -33,6 +34,14 @@ const selectedIndices = computed(() => {
 })
 
 watch(data, () => {
+  // trim string columns
+  data.value.forEach(o => {
+    Object.entries(o).forEach(([key, value]) => {
+      if (typeof value !== 'string') return
+      o[key] = value.trim()
+    })
+  })
+
   const columnSet = new Set([].concat(...data.value.map(o => Object.keys(o))))
   columnSet.delete('index')
   columns.value = Array.from(columnSet)
@@ -52,6 +61,16 @@ watch(
         if (value.length < 30) return
         const index = selectedColumns.value.indexOf(key)
         if (index !== -1) selectedColumns.value.splice(index, 1)
+      })
+    })
+
+    // guess types of columns based on data
+    columnTypes.value = {}
+    data.value.forEach(o => {
+      Object.entries(o).forEach(([key, value]) => {
+        if (columnTypes.value[key] === 'text') return
+        const type = isNaN(value) ? 'text' : 'numeric'
+        columnTypes.value[key] = type
       })
     })
   },
@@ -135,13 +154,13 @@ ws.connect()
 <template>
   <div class="h-full flex align-items-center justify-content-center">
     <div
-      class="flex flex-column surface-card max-w-full max-h-full min-w-2 px-4 shadow-2 border-round text-center"
+      class="flex flex-column surface-card max-w-full max-h-full min-w-2 p-4 shadow-2 border-round text-center"
     >
       <div class="absolute bottom-0 right-0 p-2 text-300">
         {{ props.id }}
       </div>
 
-      <div v-if="status === STATUS.OFFLINE" class="py-4">
+      <div v-if="status === STATUS.OFFLINE">
         <div>Disconnected</div>
         <div class="py-4">
           <i class="pi pi-times-circle text-6xl" />
@@ -149,7 +168,7 @@ ws.connect()
         <Button @click="ws.connect">Reconnect</Button>
       </div>
 
-      <div v-else-if="status === STATUS.CONNECTING" class="py-4">
+      <div v-else-if="status === STATUS.CONNECTING">
         <div>Connecting...</div>
         <div class="py-4">
           <i class="pi pi-spin pi-spinner text-6xl" />
@@ -157,7 +176,7 @@ ws.connect()
       </div>
 
       <template v-else>
-        <div class="py-4">
+        <div>
           <div class="mx-2 inline-block">
             <div class="mb-2 text-sm text-left">Complex</div>
             <Dropdown
@@ -201,6 +220,7 @@ ws.connect()
           v-if="selectedComplex"
           class="flex-grow-1"
           :columns="displayColumns"
+          :column-types="columnTypes"
           :complex-index="selectedComplex"
           :hidden-frames="hiddenFrames"
           :images="images"
@@ -214,7 +234,7 @@ ws.connect()
           @update:selectedFrame="selectFrame"
         />
 
-        <div v-if="selectedComplex" class="py-4">
+        <div v-if="selectedComplex" class="pt-4">
           <template v-if="selectionMode">
             <Button
               :disabled="!selectedRows.length"
