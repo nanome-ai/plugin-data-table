@@ -23,14 +23,14 @@ Draw.DrawingOptions.bondLineWidth = 8
 
 IS_DOCKER = os.path.exists('/.dockerenv')
 
-class WebTable(nanome.AsyncPluginInstance):
+class DataTable(nanome.AsyncPluginInstance):
     @async_callback
     async def start(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.temp_sdf = tempfile.NamedTemporaryFile(delete=False, suffix='.sdf', dir=self.temp_dir.name)
 
         self.url = self.custom_data[0]
-        self.server_url = 'web-table-server' if IS_DOCKER else self.url
+        self.server_url = 'data-table-server' if IS_DOCKER else self.url
         self.session = ''.join(random.choices(string.ascii_lowercase, k=4))
 
         self.selected_complex = None
@@ -275,12 +275,12 @@ class WebTable(nanome.AsyncPluginInstance):
             await self.ws_send('image', {'id': id, 'data': data})
 
 def main():
-    parser = argparse.ArgumentParser(description='Parse arguments for Web Table plugin')
+    parser = argparse.ArgumentParser(description='Parse arguments for Data Table plugin')
     parser.add_argument('-u', '--url', dest='url', type=str, help='URL of the web server', required=True)
     args, _ = parser.parse_known_args()
 
-    plugin = nanome.Plugin('Web Table', 'A Nanome plugin to demonstrate the ability to integrate with in-VR web browser', 'other', False)
-    plugin.set_plugin_class(WebTable)
+    plugin = nanome.Plugin('Data Table', 'A Nanome plugin to demonstrate the ability to integrate with in-VR web browser', 'other', False)
+    plugin.set_plugin_class(DataTable)
     plugin.set_custom_data(args.url)
     plugin.run()
 

@@ -1,4 +1,4 @@
-from nanome_web_table import WebTable
+from nanome_data_table import DataTable
 
 if __name__ == '__main__':
-    WebTable.main()
+    DataTable.main()

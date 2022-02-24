@@ -3,29 +3,29 @@
 echo "./deploy.sh $*" > redeploy.sh
 chmod +x redeploy.sh
 
-if [ -z "$(docker network ls -qf name=web-table-network)" ]; then
+if [ -z "$(docker network ls -qf name=data-table-network)" ]; then
     echo "creating network"
-    docker network create --driver bridge web-table-network
+    docker network create --driver bridge data-table-network
 fi
 
-existing=$(docker ps -aqf name=web-table)
+existing=$(docker ps -aqf name=data-table)
 if [ -n "$existing" ]; then
     echo "removing existing container"
     docker rm -f $existing
 fi
 
 docker run -d \
---name web-table \
+--name data-table \
 --restart unless-stopped \
---network web-table-network \
---env no_proxy=web-table-server \
---env NO_PROXY=web-table-server \
+--network data-table-network \
+--env no_proxy=data-table-server \
+--env NO_PROXY=data-table-server \
 -e ARGS="$*" \
-web-table
+data-table
 
 docker run -d \
---name web-table-server \
+--name data-table-server \
 --restart unless-stopped \
---network web-table-network \
+--network data-table-network \
 -p 80:80 \
-web-table-server
+data-table-server

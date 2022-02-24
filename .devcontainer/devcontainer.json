@@ -1,7 +1,7 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
 // https://github.com/microsoft/vscode-dev-containers/tree/v0.155.1/containers/docker-from-docker
 {
-  "name": "Web Table",
+  "name": "Data Table",
   "dockerFile": "Dockerfile",
   "build": {
     "args": { "--no-cache": "" }
@@ -26,7 +26,6 @@
     "python.analysis.extraPaths": ["/opt/conda/lib/python3.7/site-packages"],
     "python.formatting.autopep8Path": "/opt/conda/bin/autopep8"
   },
-
 
   // Add the IDs of extensions you want installed when the container is created.
   "extensions": [

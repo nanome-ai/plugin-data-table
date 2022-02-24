@@ -13,5 +13,5 @@ if [ ! -f ".cachebust" ] || (($cachebust)); then
 fi
 
 cachebust=$(cat .cachebust)
-docker build -f plugin.Dockerfile --build-arg CACHEBUST=$cachebust -t web-table:latest ..
-docker build -f server.Dockerfile -t web-table-server:latest ..
+docker build -f plugin.Dockerfile --build-arg CACHEBUST=$cachebust -t data-table:latest ..
+docker build -f server.Dockerfile -t data-table-server:latest ..

@@ -1,4 +1,4 @@
-# Nanome - Web Table
+# Nanome - Data Table
 
 A Nanome plugin to demonstrate the ability to integrate with in-VR web browser
 
@@ -8,7 +8,7 @@ A Nanome plugin to demonstrate the ability to integrate with in-VR web browser
 
 ## Usage
 
-To run Web Table in a Docker container:
+To run Data Table in a Docker container:
 
 ```sh
 $ cd docker
@@ -48,7 +48,7 @@ optional arguments:
 ```
 
 ## Development
-To run Web Table with autoreload:
+To run Data Table with autoreload:
 
 ```sh
 $ python3 -m pip install -r requirements.txt
