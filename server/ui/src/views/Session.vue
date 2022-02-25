@@ -216,93 +216,98 @@ ws.connect()
           </template>
         </div>
 
-        <ComplexTable
-          v-if="selectedComplex"
-          class="flex-grow-1"
-          :columns="displayColumns"
-          :column-types="columnTypes"
-          :complex-index="selectedComplex"
-          :hidden-frames="hiddenFrames"
-          :images="images"
-          :loading="loading"
-          :multi-select="selectionMode"
-          :name-column="nameColumn"
-          :reorderable="reorderMode"
-          v-model="data"
-          v-model:selectedFrame="selectedFrame"
-          v-model:selectedRows="selectedRows"
-          @update:selectedFrame="selectFrame"
-        />
-
-        <div v-if="selectedComplex" class="pt-4">
-          <template v-if="selectionMode">
-            <Button
-              :disabled="!selectedRows.length"
-              class="mx-2 p-button-danger"
-              @click="deleteSelection"
-            >
-              Delete
-            </Button>
-            <Menu
-              ref="split"
-              :model="[
-                {
-                  label: 'single entry',
-                  icon: 'pi pi-file',
-                  command: () => splitSelection(true)
-                },
-                {
-                  label: 'multiple entries',
-                  icon: 'pi pi-copy',
-                  command: () => splitSelection(false)
-                }
-              ]"
-              popup
-            />
-            <Button
-              :disabled="!selectedRows.length"
-              class="mx-2"
-              @click="e => $refs.split.toggle(e)"
-            >
-              Split
-            </Button>
-            <Button
-              :disabled="!selectedRows.length"
-              class="mx-2"
-              @click="hideSelection"
-            >
-              Hide
-            </Button>
-          </template>
-
-          <template v-else-if="reorderMode">
-            <Button class="mx-2" @click="saveReorder"> Save </Button>
-          </template>
-
-          <Button
-            v-if="hiddenFrames.length"
-            class="mx-2 p-button-outlined"
-            @click="unhideAll"
-          >
-            Unhide All
-          </Button>
-
-          <Button
-            v-if="!reorderMode"
-            class="mx-2 p-button-outlined"
-            @click="toggleSelectionMode"
-          >
-            {{ selectionMode ? 'Cancel' : 'Selection Mode' }}
-          </Button>
-
-          <Button
-            v-if="!selectionMode"
-            class="mx-2 p-button-outlined"
-            @click="toggleReorderMode"
-          >
-            {{ reorderMode ? 'Cancel' : 'Reorder Mode' }}
-          </Button>
+        <div v-if="!selectedComplex" class="pt-4">
+          Select a multi-frame complex to view data
         </div>
+
+        <template v-else>
+          <ComplexTable
+            class="flex-grow-1"
+            :columns="displayColumns"
+            :column-types="columnTypes"
+            :complex-index="selectedComplex"
+            :hidden-frames="hiddenFrames"
+            :images="images"
+            :loading="loading"
+            :multi-select="selectionMode"
+            :name-column="nameColumn"
+            :reorderable="reorderMode"
+            v-model="data"
+            v-model:selectedFrame="selectedFrame"
+            v-model:selectedRows="selectedRows"
+            @update:selectedFrame="selectFrame"
+          />
+
+          <div class="pt-4">
+            <template v-if="selectionMode">
+              <Button
+                :disabled="!selectedRows.length"
+                class="mx-2 p-button-danger"
+                @click="deleteSelection"
+              >
+                Delete
+              </Button>
+              <Menu
+                ref="split"
+                :model="[
+                  {
+                    label: 'single entry',
+                    icon: 'pi pi-file',
+                    command: () => splitSelection(true)
+                  },
+                  {
+                    label: 'multiple entries',
+                    icon: 'pi pi-copy',
+                    command: () => splitSelection(false)
+                  }
+                ]"
+                popup
+              />
+              <Button
+                :disabled="!selectedRows.length"
+                class="mx-2"
+                @click="e => $refs.split.toggle(e)"
+              >
+                Split
+              </Button>
+              <Button
+                :disabled="!selectedRows.length"
+                class="mx-2"
+                @click="hideSelection"
+              >
+                Hide
+              </Button>
+            </template>
+
+            <template v-else-if="reorderMode">
+              <Button class="mx-2" @click="saveReorder"> Save </Button>
+            </template>
+
+            <Button
+              v-if="hiddenFrames.length"
+              class="mx-2 p-button-outlined"
+              @click="unhideAll"
+            >
+              Unhide All
+            </Button>
+
+            <Button
+              v-if="!reorderMode"
+              class="mx-2 p-button-outlined"
+              @click="toggleSelectionMode"
+            >
+              {{ selectionMode ? 'Cancel' : 'Selection Mode' }}
+            </Button>
+
+            <Button
+              v-if="!selectionMode"
+              class="mx-2 p-button-outlined"
+              @click="toggleReorderMode"
+            >
+              {{ reorderMode ? 'Cancel' : 'Reorder Mode' }}
+            </Button>
+          </div>
+        </template>
       </template>
     </div>
   </div>
