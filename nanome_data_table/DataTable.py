@@ -279,7 +279,7 @@ def main():
     parser.add_argument('-u', '--url', dest='url', type=str, help='URL of the web server', required=True)
     args, _ = parser.parse_known_args()
 
-    plugin = nanome.Plugin('Data Table', 'A Nanome plugin to demonstrate the ability to integrate with in-VR web browser', 'other', False)
+    plugin = nanome.Plugin('Data Table', 'A Nanome plugin to view multi-frame structure metadata in a table', 'Analysis', False)
     plugin.set_plugin_class(DataTable)
     plugin.set_custom_data(args.url)
     plugin.run()

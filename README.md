@@ -1,6 +1,6 @@
 # Nanome - Data Table
 
-A Nanome plugin to demonstrate the ability to integrate with in-VR web browser
+A Nanome plugin to view multi-frame structure metadata in a table
 
 ## Dependencies
 
