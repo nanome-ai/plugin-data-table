@@ -21,14 +21,17 @@ onMounted(() => {
 </template>
 
 <style>
+html {
+  background-color: var(--surface-b);
+  color: var(--text-color);
+  font-family: var(--font-family);
+  font-weight: 400;
+}
+
 body {
   margin: 0;
   overflow-x: hidden;
   overflow-y: auto;
-  background-color: var(--surface-b);
-  font-family: var(--font-family);
-  font-weight: 400;
-  color: var(--text-color);
 }
 
 body.using-mouse :focus {
