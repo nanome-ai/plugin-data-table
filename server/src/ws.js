@@ -15,7 +15,7 @@ const broadcast = (ws, type, data, toPlugin = null) => {
 
   if (type !== 'image') {
     const debug = type === 'data' ? '---' : data
-    console.log(logType, ws.session, type, debug)
+    console.log(ws.session, logType, type, debug)
   }
 
   wss.clients.forEach(client => {

@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { EVENT, STATUS, useWS } from '../ws'
 
 import ComplexTable from '../components/ComplexTable.vue'
+import ExampleImage from '../assets/image.png'
 
 const props = defineProps({
   id: String
@@ -152,7 +153,48 @@ ws.connect()
 </script>
 
 <template>
-  <div class="h-full flex align-items-center justify-content-center">
+  <div v-if="status === STATUS.ONLINE && !selectedComplex" class="h-full grid">
+    <div class="col-5 flex align-items-center justify-content-center">
+      <div class="inline-block">
+        <h1 class="mt-0 mb-2 text-6xl">Data Table Plugin</h1>
+        <div class="mb-8 text-500 text-xl">
+          View your multi-frame molecule metadata<br />
+          in an interactive table.
+        </div>
+
+        <div
+          class="surface-card py-5 border-2 border-100 text-center"
+          style="border-radius: 8px"
+        >
+          <div class="mb-3 text-xl">Select an entry to begin</div>
+          <Dropdown
+            v-model="selectedComplex"
+            :options="complexes"
+            class="w-15rem"
+            option-label="name"
+            option-value="index"
+            placeholder="click here"
+            @change="selectComplex"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="col-7 px-6 flex align-items-center justify-content-center surface-50 text-center"
+    >
+      <div class="inline-block">
+        <h2 class="text-4xl">Example Output</h2>
+        <img :src="ExampleImage" alt="example" class="w-full" />
+        <div class="mt-4 text-500 text-xl">
+          Best used for analyzing metadata for a multi-frame SDF small molecule
+          entry
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div v-else class="h-full flex align-items-center justify-content-center">
     <div
       class="flex flex-column surface-card max-w-full max-h-full min-w-2 p-4 shadow-2 border-round text-center"
     >
@@ -178,136 +220,127 @@ ws.connect()
       <template v-else>
         <div>
           <div class="mx-2 inline-block">
-            <div class="mb-2 text-sm text-left">Complex</div>
+            <div class="mb-2 text-sm text-left">Entry</div>
             <Dropdown
               v-model="selectedComplex"
               :options="complexes"
-              id="complex"
               class="w-15rem"
               option-label="name"
               option-value="index"
-              placeholder="select a complex"
+              placeholder="select an entry"
               @change="selectComplex"
             />
           </div>
 
-          <template v-if="selectedComplex">
-            <div class="mx-2 inline-block">
-              <div class="mb-2 text-sm text-left">Show Columns</div>
-              <MultiSelect
-                v-model="selectedColumns"
-                :options="columns"
-                :max-selected-labels="0.1"
-                class="w-15rem"
-                placeholder="toggle columns"
-                selected-items-label="toggle columns"
-              />
-            </div>
-
-            <div class="mx-2 inline-block">
-              <div class="mb-2 text-sm text-left">Name Column</div>
-              <Dropdown
-                v-model="nameColumn"
-                :options="columns"
-                class="w-15rem"
-                placeholder="no name column"
-              />
-            </div>
-          </template>
-        </div>
-
-        <div v-if="!selectedComplex" class="pt-4">
-          Select a multi-frame complex to view data
-        </div>
-
-        <template v-else>
-          <ComplexTable
-            class="flex-grow-1"
-            :columns="displayColumns"
-            :column-types="columnTypes"
-            :complex-index="selectedComplex"
-            :hidden-frames="hiddenFrames"
-            :images="images"
-            :loading="loading"
-            :multi-select="selectionMode"
-            :name-column="nameColumn"
-            :reorderable="reorderMode"
-            v-model="data"
-            v-model:selectedFrame="selectedFrame"
-            v-model:selectedRows="selectedRows"
-            @update:selectedFrame="selectFrame"
-          />
-
-          <div class="pt-4">
-            <template v-if="selectionMode">
-              <Button
-                :disabled="!selectedRows.length"
-                class="mx-2 p-button-danger"
-                @click="deleteSelection"
-              >
-                Delete
-              </Button>
-              <Menu
-                ref="split"
-                :model="[
-                  {
-                    label: 'single entry',
-                    icon: 'pi pi-file',
-                    command: () => splitSelection(true)
-                  },
-                  {
-                    label: 'multiple entries',
-                    icon: 'pi pi-copy',
-                    command: () => splitSelection(false)
-                  }
-                ]"
-                popup
-              />
-              <Button
-                :disabled="!selectedRows.length"
-                class="mx-2"
-                @click="e => $refs.split.toggle(e)"
-              >
-                Split
-              </Button>
-              <Button
-                :disabled="!selectedRows.length"
-                class="mx-2"
-                @click="hideSelection"
-              >
-                Hide
-              </Button>
-            </template>
-
-            <template v-else-if="reorderMode">
-              <Button class="mx-2" @click="saveReorder"> Save </Button>
-            </template>
-
-            <Button
-              v-if="hiddenFrames.length"
-              class="mx-2 p-button-outlined"
-              @click="unhideAll"
-            >
-              Unhide All
-            </Button>
-
-            <Button
-              v-if="!reorderMode"
-              class="mx-2 p-button-outlined"
-              @click="toggleSelectionMode"
-            >
-              {{ selectionMode ? 'Cancel' : 'Selection Mode' }}
-            </Button>
-
-            <Button
-              v-if="!selectionMode"
-              class="mx-2 p-button-outlined"
-              @click="toggleReorderMode"
-            >
-              {{ reorderMode ? 'Cancel' : 'Reorder Mode' }}
-            </Button>
+          <div class="mx-2 inline-block">
+            <div class="mb-2 text-sm text-left">Show Columns</div>
+            <MultiSelect
+              v-model="selectedColumns"
+              :options="columns"
+              :max-selected-labels="0.1"
+              class="w-15rem"
+              placeholder="toggle columns"
+              selected-items-label="toggle columns"
+            />
           </div>
-        </template>
+
+          <div class="mx-2 inline-block">
+            <div class="mb-2 text-sm text-left">Name Column</div>
+            <Dropdown
+              v-model="nameColumn"
+              :options="columns"
+              class="w-15rem"
+              placeholder="no name column"
+            />
+          </div>
+        </div>
+
+        <ComplexTable
+          class="flex-grow-1"
+          :columns="displayColumns"
+          :column-types="columnTypes"
+          :complex-index="selectedComplex"
+          :hidden-frames="hiddenFrames"
+          :images="images"
+          :loading="loading"
+          :multi-select="selectionMode"
+          :name-column="nameColumn"
+          :reorderable="reorderMode"
+          v-model="data"
+          v-model:selectedFrame="selectedFrame"
+          v-model:selectedRows="selectedRows"
+          @update:selectedFrame="selectFrame"
+        />
+
+        <div class="pt-4">
+          <template v-if="selectionMode">
+            <Button
+              :disabled="!selectedRows.length"
+              class="mx-2 p-button-danger"
+              @click="deleteSelection"
+            >
+              Delete
+            </Button>
+            <Menu
+              ref="split"
+              :model="[
+                {
+                  label: 'single entry',
+                  icon: 'pi pi-file',
+                  command: () => splitSelection(true)
+                },
+                {
+                  label: 'multiple entries',
+                  icon: 'pi pi-copy',
+                  command: () => splitSelection(false)
+                }
+              ]"
+              popup
+            />
+            <Button
+              :disabled="!selectedRows.length"
+              class="mx-2"
+              @click="e => $refs.split.toggle(e)"
+            >
+              Split
+            </Button>
+            <Button
+              :disabled="!selectedRows.length"
+              class="mx-2"
+              @click="hideSelection"
+            >
+              Hide
+            </Button>
+          </template>
+
+          <template v-else-if="reorderMode">
+            <Button class="mx-2" @click="saveReorder"> Save </Button>
+          </template>
+
+          <Button
+            v-if="hiddenFrames.length"
+            class="mx-2 p-button-outlined"
+            @click="unhideAll"
+          >
+            Unhide All
+          </Button>
+
+          <Button
+            v-if="!reorderMode"
+            class="mx-2 p-button-outlined"
+            @click="toggleSelectionMode"
+          >
+            {{ selectionMode ? 'Cancel' : 'Selection Mode' }}
+          </Button>
+
+          <Button
+            v-if="!selectionMode"
+            class="mx-2 p-button-outlined"
+            @click="toggleReorderMode"
+          >
+            {{ reorderMode ? 'Cancel' : 'Reorder Mode' }}
+          </Button>
+        </div>
       </template>
     </div>
   </div>

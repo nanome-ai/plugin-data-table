@@ -26,6 +26,24 @@ html {
   color: var(--text-color);
   font-family: var(--font-family);
   font-weight: 400;
+
+  scrollbar-color: var(--surface-b) transparent;
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background-color: transparent;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--surface-b);
+  border-radius: 5px;
 }
 
 body {
