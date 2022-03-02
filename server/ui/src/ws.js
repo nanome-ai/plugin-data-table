@@ -84,7 +84,8 @@ export function useWS(id) {
   const connect = () => {
     if (ws) return
     try {
-      ws = new WebSocket(`ws://${location.hostname}/ws`)
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
+      ws = new WebSocket(`${protocol}//${location.host}/ws`)
       status.value = STATUS.CONNECTING
 
       ws.onopen = onOpen

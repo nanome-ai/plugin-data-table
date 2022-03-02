@@ -8,6 +8,6 @@ RUN npm install --production
 COPY server .
 RUN cd ui && npm install && npm run build
 
-EXPOSE 80
+EXPOSE 80 443
 
 CMD npm run start ${ARGS}
