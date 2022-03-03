@@ -333,13 +333,13 @@ ws.connect()
             {{ selectionMode ? 'Cancel' : 'Selection Mode' }}
           </Button>
 
-          <Button
+          <!-- <Button
             v-if="!selectionMode"
             class="mx-2 p-button-outlined"
             @click="toggleReorderMode"
           >
             {{ reorderMode ? 'Cancel' : 'Reorder Mode' }}
-          </Button>
+          </Button> -->
         </div>
       </template>
     </div>
