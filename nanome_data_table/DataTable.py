@@ -29,7 +29,7 @@ class DataTable(nanome.AsyncPluginInstance):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.temp_sdf = tempfile.NamedTemporaryFile(delete=False, suffix='.sdf', dir=self.temp_dir.name)
 
-        self.url = self.custom_data[0]
+        self.url, self.https = self.custom_data
         self.server_url = 'data-table-server' if IS_DOCKER else self.url
         self.session = ''.join(random.choices(string.ascii_lowercase, k=4))
 
@@ -94,7 +94,8 @@ class DataTable(nanome.AsyncPluginInstance):
             Logs.debug('done', type)
 
     def on_run(self):
-        self.open_url(f'{self.url}/{self.session}')
+        protocol = 'https' if self.https else 'http'
+        self.open_url(f'{protocol}://{self.url}/{self.session}')
 
     @async_callback
     async def on_stop(self):
@@ -274,14 +275,24 @@ class DataTable(nanome.AsyncPluginInstance):
             data = base64.b64encode(f.read()).decode('utf-8')
             await self.ws_send('image', {'id': id, 'data': data})
 
+
 def main():
     parser = argparse.ArgumentParser(description='Parse arguments for Data Table plugin')
+    parser.add_argument('--https', dest='https', action='store_true', help='Enable HTTPS on the Data Table Web UI')
     parser.add_argument('-u', '--url', dest='url', type=str, help='URL of the web server', required=True)
+    parser.add_argument('-w', '--web-port', dest='web_port', type=int, help='Custom port for connecting to Data Table Web UI.')
     args, _ = parser.parse_known_args()
+
+    https = args.https
+    port = args.web_port
+    url = args.url
+
+    if port:
+        url = f'{url}:{port}'
 
     plugin = nanome.Plugin('Data Table', 'A Nanome plugin to view multi-frame structure metadata in a table', 'Analysis', False)
     plugin.set_plugin_class(DataTable)
-    plugin.set_custom_data(args.url)
+    plugin.set_custom_data(url, https)
     plugin.run()
 
 

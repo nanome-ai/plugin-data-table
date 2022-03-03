@@ -22,7 +22,7 @@ onMounted(() => {
 
 <style>
 html {
-  background-color: var(--surface-b);
+  background: var(--surface-b);
   color: var(--text-color);
   font-family: var(--font-family);
   font-weight: 400;
@@ -34,7 +34,7 @@ html {
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
-  background-color: transparent;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-corner {
@@ -60,5 +60,7 @@ body.using-mouse :focus {
 #app {
   width: 100vw;
   height: 100vh;
+  background: var(--surface-b);
+  color: var(--text-color);
 }
 </style>

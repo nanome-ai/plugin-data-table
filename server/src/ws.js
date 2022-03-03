@@ -1,5 +1,7 @@
+const url = require('url')
 const WebSocket = require('ws')
-let wss = null
+
+let server = null
 let sessions = {}
 
 const send = (ws, type, data) => {
@@ -18,7 +20,7 @@ const broadcast = (ws, type, data, toPlugin = null) => {
     console.log(ws.session, logType, type, debug)
   }
 
-  wss.clients.forEach(client => {
+  server.clients.forEach(client => {
     if (client === ws) return
     if (client.session !== ws.session) return
     if (toPlugin !== null && client.plugin !== toPlugin) return
@@ -103,7 +105,7 @@ const onConnection = ws => {
 }
 
 const killInactive = () => {
-  wss.clients.forEach(ws => {
+  server.clients.forEach(ws => {
     if (!ws.alive) {
       ws.terminate()
       return
@@ -113,10 +115,28 @@ const killInactive = () => {
   })
 }
 
-exports.init = server => {
-  wss = new WebSocket.WebSocketServer({ server, path: '/ws' })
-  wss.on('connection', onConnection)
+exports.init = () => {
+  server = new WebSocket.WebSocketServer({ noServer: true })
+  server.on('connection', onConnection)
 
   const id = setInterval(killInactive, 30000)
-  wss.on('close', () => clearInterval(id))
+  server.on('close', () => clearInterval(id))
+}
+
+exports.onUpgrade = (req, socket, head) => {
+  const { pathname } = url.parse(req.url)
+  if (pathname !== '/ws') {
+    socket.destroy()
+    return
+  }
+
+  if (!server) {
+    console.log('No server')
+    socket.destroy()
+    return
+  }
+
+  server.handleUpgrade(req, socket, head, ws => {
+    server.emit('connection', ws)
+  })
 }
