@@ -223,4 +223,8 @@ const resetFilter = filter => {
   top: 0;
   z-index: 1;
 }
+
+:deep(.p-datatable-tbody) {
+  user-select: none;
+}
 </style>
