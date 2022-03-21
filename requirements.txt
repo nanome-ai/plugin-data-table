@@ -1,2 +1,2 @@
-nanome
+nanome==0.35.9
 websockets
