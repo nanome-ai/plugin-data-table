@@ -64,18 +64,22 @@ if [ $NGINX -eq 0 ]; then
     SERVER_ARGS+=(-p $PORT:$SERVER_PORT)
 fi
 
-docker run -d \
---name data-table \
---restart unless-stopped \
---network data-table-network \
---env no_proxy=data-table-server \
---env NO_PROXY=data-table-server \
--e ARGS="$ARGS" \
-data-table
+plugin_container_name="data-table"
+server_container_name="data-table-server"
 
 docker run -d \
---name data-table-server \
+--name $plugin_container_name \
+--restart unless-stopped \
+--network data-table-network \
+-h $(hostname)-$plugin_container_name \
+--env no_proxy=$server_container_name \
+--env NO_PROXY=$server_container_name \
+-e ARGS="$ARGS" \
+$plugin_container_name
+
+docker run -d \
+--name $server_container_name \
 --restart unless-stopped \
 --network data-table-network \
 ${SERVER_ARGS[@]} \
-data-table-server
+$server_container_name
