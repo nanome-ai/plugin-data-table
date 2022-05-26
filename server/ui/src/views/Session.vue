@@ -121,12 +121,13 @@ const selectFrame = event => {
   ws.send(EVENT.SELECT_FRAME, event.index)
 }
 
-const splitSelection = single => {
-  loading.value = true
+const splitSelection = (single, remove) => {
+  loading.value = remove
   ws.send(EVENT.SPLIT_FRAMES, {
     indices: selectedIndices.value,
     name_column: nameColumn.value,
-    single
+    single,
+    remove
   })
   selectedRows.value = []
 }
@@ -282,17 +283,40 @@ ws.connect()
               Delete
             </Button>
             <Menu
+              ref="duplicate"
+              :model="[
+                {
+                  label: 'single entry',
+                  icon: 'pi pi-file',
+                  command: () => splitSelection(true, false)
+                },
+                {
+                  label: 'multiple entries',
+                  icon: 'pi pi-copy',
+                  command: () => splitSelection(false, false)
+                }
+              ]"
+              popup
+            />
+            <Button
+              :disabled="!selectedRows.length"
+              class="mx-2"
+              @click="e => $refs.duplicate.toggle(e)"
+            >
+              Duplicate
+            </Button>
+            <Menu
               ref="split"
               :model="[
                 {
                   label: 'single entry',
                   icon: 'pi pi-file',
-                  command: () => splitSelection(true)
+                  command: () => splitSelection(true, true)
                 },
                 {
                   label: 'multiple entries',
                   icon: 'pi pi-copy',
-                  command: () => splitSelection(false)
+                  command: () => splitSelection(false, true)
                 }
               ]"
               popup

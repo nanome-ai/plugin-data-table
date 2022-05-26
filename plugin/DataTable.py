@@ -193,6 +193,7 @@ class DataTable(nanome.AsyncPluginInstance):
     async def split_frames(self, data):
         indices = data['indices']
         single = data['single']
+        remove = data['remove']
         name_column = data['name_column']
         source = self.selected_complex.convert_to_frames()
         complexes = []
@@ -213,7 +214,9 @@ class DataTable(nanome.AsyncPluginInstance):
 
         Complex.align_origins(source, *complexes)
         await self.update_structures_deep(complexes)
-        await self.delete_frames(indices)
+
+        if remove:
+            await self.delete_frames(indices)
 
     async def update_complex(self):
         self.ignore_next_update += 1
