@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { EVENT, STATUS, useWS } from '../ws'
 
+import ComplexGraph from '../components/ComplexGraph.vue'
 import ComplexTable from '../components/ComplexTable.vue'
 import ExampleImage from '../assets/image.png'
 
@@ -256,22 +257,37 @@ ws.connect()
           </div>
         </div>
 
-        <ComplexTable
-          class="flex-grow-1"
-          :columns="displayColumns"
-          :column-types="columnTypes"
-          :complex-index="selectedComplex"
-          :hidden-frames="hiddenFrames"
-          :images="images"
-          :loading="loading"
-          :multi-select="selectionMode"
-          :name-column="nameColumn"
-          :reorderable="reorderMode"
-          v-model="data"
-          v-model:selectedFrame="selectedFrame"
-          v-model:selectedRows="selectedRows"
-          @update:selectedFrame="selectFrame"
-        />
+        <div class="flex flex-grow-1 min-h-0">
+          <ComplexTable
+            class="flex-grow-1"
+            :columns="displayColumns"
+            :column-types="columnTypes"
+            :complex-index="selectedComplex"
+            :hidden-frames="hiddenFrames"
+            :images="images"
+            :loading="loading"
+            :multi-select="selectionMode"
+            :name-column="nameColumn"
+            :reorderable="reorderMode"
+            v-model="data"
+            v-model:selectedFrame="selectedFrame"
+            v-model:selectedRows="selectedRows"
+            @update:selectedFrame="selectFrame"
+          />
+
+          <div class="mt-4 p-2 w-12">
+            <ComplexGraph
+              :columns="columns"
+              :column-types="columnTypes"
+              :complex-index="selectedComplex"
+              :data="data"
+              :images="images"
+              :name-column="nameColumn"
+              v-model:selectedFrame="selectedFrame"
+              @update:selectedFrame="selectFrame"
+            />
+          </div>
+        </div>
 
         <div class="pt-4">
           <template v-if="selectionMode">
