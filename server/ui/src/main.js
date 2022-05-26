@@ -4,6 +4,11 @@ import PrimeVue from 'primevue/config'
 import ToastService from 'primevue/toastservice'
 import router from './router'
 
+import 'primevue/resources/themes/arya-blue/theme.css'
+import 'primevue/resources/primevue.min.css'
+import 'primeflex/primeflex.css'
+import 'primeicons/primeicons.css'
+
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import Chip from 'primevue/chip'
@@ -13,11 +18,6 @@ import InputText from 'primevue/inputtext'
 import Menu from 'primevue/menu'
 import MultiSelect from 'primevue/multiselect'
 import Toast from 'primevue/toast'
-
-import 'primevue/resources/themes/arya-blue/theme.css'
-import 'primevue/resources/primevue.min.css'
-import 'primeflex/primeflex.css'
-import 'primeicons/primeicons.css'
 
 const app = createApp(App)
 
