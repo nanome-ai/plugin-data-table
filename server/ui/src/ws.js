@@ -1,7 +1,3 @@
-import { reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useToast } from 'primevue/usetoast'
-
 export const STATUS = {
   CONNECTING: 'connecting',
   OFFLINE: 'offline',
@@ -11,74 +7,51 @@ export const STATUS = {
 export const EVENT = {
   CLOSE: 'close',
   COMPLEXES: 'complexes',
-  DATA: 'data',
   DELETE_FRAMES: 'delete-frames',
   ERROR: 'error',
+  FRAMES: 'frames',
   IMAGE: 'image',
   JOIN: 'join',
   REORDER_FRAMES: 'reorder-frames',
   SELECT_COMPLEX: 'select-complex',
   SELECT_FRAME: 'select-frame',
-  SPLIT_FRAMES: 'split-frames'
+  SPLIT_FRAMES: 'split-frames',
+  STATUS: 'status'
 }
 
 export function useWS(id) {
-  const toast = useToast()
-  const router = useRouter()
-
   let ws = null
   const listeners = {}
-  const status = ref(STATUS.OFFLINE)
-  const data = ref([])
-  const images = reactive({})
-  const complexes = ref([])
 
   const send = (type, data) => {
     console.log('send', type, data)
     ws.send(JSON.stringify({ type, data }))
   }
 
+  const emit = (type, data) => {
+    if (!listeners[type]) return
+    listeners[type].forEach(fn => fn(data))
+  }
+
   const onOpen = () => {
     send(EVENT.JOIN, id)
-    status.value = STATUS.ONLINE
+    emit(EVENT.STATUS, STATUS.ONLINE)
   }
 
   const onMessage = e => {
     const msg = JSON.parse(e.data)
     console.log('recv', msg.type)
 
-    switch (msg.type) {
-      case EVENT.CLOSE:
-        ws.close()
-        break
-      case EVENT.ERROR:
-        toast.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: msg.data,
-          life: 5000
-        })
-        router.push('/')
-        break
-      case EVENT.COMPLEXES:
-        complexes.value = msg.data
-        break
-      case EVENT.DATA:
-        data.value = msg.data
-        break
-      case EVENT.IMAGE:
-        images[msg.data.id] = msg.data.data
-        break
+    if (msg.type === EVENT.CLOSE) {
+      ws.close()
     }
 
-    if (listeners[msg.type]) {
-      listeners[msg.type].forEach(fn => fn(msg.data))
-    }
+    emit(msg.type, msg.data)
   }
 
   const onClose = () => {
     ws = null
-    status.value = STATUS.OFFLINE
+    emit(EVENT.STATUS, STATUS.OFFLINE)
   }
 
   const connect = () => {
@@ -86,12 +59,14 @@ export function useWS(id) {
     try {
       const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
       ws = new WebSocket(`${protocol}//${location.host}/ws`)
-      status.value = STATUS.CONNECTING
+      emit(EVENT.STATUS, STATUS.CONNECTING)
 
       ws.onopen = onOpen
       ws.onmessage = onMessage
       ws.onclose = onClose
-    } catch (e) {}
+    } catch (e) {
+      console.error(e)
+    }
   }
 
   const on = (event, handler) => {
@@ -108,10 +83,6 @@ export function useWS(id) {
   }
 
   return {
-    status,
-    data,
-    images,
-    complexes,
     connect,
     send,
     on

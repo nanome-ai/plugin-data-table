@@ -69,7 +69,7 @@ const onMessage = ws => e => {
       }
       break
     case 'complexes':
-    case 'data':
+    case 'frames':
     case 'image':
       send_clients(ws, type, data)
       break

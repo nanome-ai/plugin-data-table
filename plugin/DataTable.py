@@ -228,12 +228,12 @@ class DataTable(nanome.AsyncPluginInstance):
         complex = self.selected_complex.convert_to_frames()
         complex.index = self.selected_complex.index
         self.selected_num_frames = len(list(complex.molecules))
-        data = []
+        frames = []
 
         for i, mol in enumerate(complex.molecules):
-            data.append({'index': i, **mol.associated})
+            frames.append({'index': i, **mol.associated})
 
-        await self.ws_send('data', data)
+        await self.ws_send('frames', frames)
         await self.ws_send('select-frame', frame)
         await self.generate_images(complex)
 

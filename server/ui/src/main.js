@@ -1,4 +1,5 @@
 import { createApp } from 'vue'
+import { createPinia } from 'pinia'
 import App from './App.vue'
 import PrimeVue from 'primevue/config'
 import ToastService from 'primevue/toastservice'
@@ -20,6 +21,7 @@ import MultiSelect from 'primevue/multiselect'
 import Toast from 'primevue/toast'
 
 const app = createApp(App)
+app.use(createPinia())
 
 app.component('Button', Button)
 app.component('Checkbox', Checkbox)
