@@ -69,6 +69,11 @@ export function useWS(id) {
     }
   }
 
+  const disconnect = () => {
+    if (!ws) return
+    ws.close()
+  }
+
   const on = (event, handler) => {
     if (!Object.values(EVENT).includes(event)) {
       console.error('Unknown event', event)
@@ -84,6 +89,7 @@ export function useWS(id) {
 
   return {
     connect,
+    disconnect,
     send,
     on
   }

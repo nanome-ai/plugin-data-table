@@ -5,7 +5,7 @@ import { useSessionStore } from '../store/session'
 
 import ComplexGraph from '../components/ComplexGraph.vue'
 import ComplexTable from '../components/ComplexTable.vue'
-import ExampleImage from '../assets/image.png'
+import IntroPanel from '../components/IntroPanel.vue'
 
 const props = defineProps({
   id: String
@@ -43,49 +43,20 @@ session.connect(props.id)
 </script>
 
 <template>
-  <div
+  <IntroPanel
     v-if="session.status === STATUS.ONLINE && !session.selectedComplex"
-    class="h-full grid"
   >
-    <div class="col-5 flex align-items-center justify-content-center">
-      <div class="inline-block">
-        <h1 class="mt-0 mb-2 text-6xl">Data Table Plugin</h1>
-        <div class="mb-8 text-500 text-xl">
-          View your multi-frame molecule metadata<br />
-          in an interactive table.
-        </div>
-
-        <div
-          class="surface-card py-5 border-2 border-100 text-center"
-          style="border-radius: 8px"
-        >
-          <div class="mb-3 text-xl">Select an entry to begin</div>
-          <Dropdown
-            v-model="session.selectedComplex"
-            :options="session.complexes"
-            class="w-15rem"
-            option-label="name"
-            option-value="index"
-            placeholder="click here"
-            @change="({ value }) => session.selectComplex(value)"
-          />
-        </div>
-      </div>
-    </div>
-
-    <div
-      class="col-7 px-6 flex align-items-center justify-content-center surface-50 text-center"
-    >
-      <div class="inline-block">
-        <h2 class="text-4xl">Example Output</h2>
-        <img :src="ExampleImage" alt="example" class="w-full" />
-        <div class="mt-4 text-500 text-xl">
-          Best used for analyzing metadata for a multi-frame SDF small molecule
-          entry
-        </div>
-      </div>
-    </div>
-  </div>
+    <div class="mb-3 text-xl">Select an entry to begin</div>
+    <Dropdown
+      v-model="session.selectedComplex"
+      :options="session.complexes"
+      class="w-full"
+      option-label="name"
+      option-value="index"
+      placeholder="click here"
+      @change="({ value }) => session.selectComplex(value)"
+    />
+  </IntroPanel>
 
   <div v-else class="h-full flex align-items-center justify-content-center">
     <div

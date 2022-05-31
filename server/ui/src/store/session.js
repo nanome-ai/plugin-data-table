@@ -116,6 +116,11 @@ export const useSessionStore = defineStore('session', {
       ws.connect()
     },
 
+    disconnect() {
+      if (!this.ws) return
+      this.ws.disconnect()
+    },
+
     deleteSelection() {
       this.loading = true
       this.ws.send(EVENT.DELETE_FRAMES, this.selectedFrameIndices)
