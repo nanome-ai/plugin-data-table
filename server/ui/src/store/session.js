@@ -1,3 +1,4 @@
+import { markRaw } from 'vue'
 import { defineStore } from 'pinia'
 import { STATUS, EVENT, useWS } from '../ws'
 
@@ -64,6 +65,16 @@ const setupEventListeners = (store, ws) => {
   ws.on(EVENT.SELECT_FRAME, index => {
     store.selectedFrame = store.frames.find(f => f.index === index)
   })
+
+  ws.on(EVENT.ERROR, error => {
+    store.$toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: error,
+      life: 5000
+    })
+    store.$router.push('/')
+  })
 }
 
 export const useSessionStore = defineStore('session', {
@@ -111,7 +122,7 @@ export const useSessionStore = defineStore('session', {
   actions: {
     connect(id) {
       const ws = useWS(id)
-      this.ws = ws
+      this.ws = markRaw(ws)
       setupEventListeners(this, ws)
       ws.connect()
     },

@@ -1,7 +1,8 @@
-import { createApp } from 'vue'
+import { createApp, markRaw } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import PrimeVue from 'primevue/config'
+import ToastEventBus from 'primevue/toasteventbus'
 import ToastService from 'primevue/toastservice'
 import router from './router'
 
@@ -21,7 +22,14 @@ import MultiSelect from 'primevue/multiselect'
 import Toast from 'primevue/toast'
 
 const app = createApp(App)
-app.use(createPinia())
+const pinia = createPinia()
+pinia.use(({ store }) => {
+  store.$router = markRaw(router)
+  store.$toast = markRaw({
+    add: message => ToastEventBus.emit('add', message)
+  })
+})
+app.use(pinia)
 
 app.component('Button', Button)
 app.component('Checkbox', Checkbox)
