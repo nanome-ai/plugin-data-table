@@ -84,7 +84,7 @@ session.connect(props.id)
 
       <template v-else>
         <div class="flex flex-grow-1 min-h-0">
-          <div class="flex flex-column flex-grow-1 min-w-0">
+          <div class="flex flex-column min-w-0">
             <div>
               <div class="mx-2 inline-block">
                 <div class="mb-2 text-sm text-left">Entry</div>
@@ -137,20 +137,22 @@ session.connect(props.id)
             />
           </div>
 
-          <div v-if="showGraphs" class="pl-4 w-12 overflow-auto">
-            <div class="mb-6 text-xl">Quick Graphs</div>
-            <ComplexGraph
-              v-for="(graph, index) in session.graphs"
-              :index="index"
-            />
-
-            <Button
-              class="p-button-outlined"
-              label="add graph"
-              icon="pi pi-plus"
-              @click="session.addGraph"
-            />
-          </div>
+          <template v-if="showGraphs">
+            <Divider layout="vertical" />
+            <div class="pl-2 overflow-auto" style="min-width: 33%">
+              <div class="mb-6 text-xl">Quick Graphs</div>
+              <ComplexGraph
+                v-for="(graph, index) in session.graphs"
+                :index="index"
+              />
+              <Button
+                class="p-button-outlined"
+                label="add graph"
+                icon="pi pi-plus"
+                @click="session.addGraph"
+              />
+            </div>
+          </template>
         </div>
 
         <div class="pt-4">

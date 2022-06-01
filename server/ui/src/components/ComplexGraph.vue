@@ -103,39 +103,16 @@ const onClick = () => {
   index = index === -1 ? 0 : (index + 1) % tooltip.items.length
   session.selectFrame(tooltip.items[index].index)
 }
+
+const swapAxes = () => {
+  const x = graph.value.xColumn
+  graph.value.xColumn = graph.value.yColumn
+  graph.value.yColumn = x
+}
 </script>
 
 <template>
-  <div class="mb-2">
-    <div class="mx-2 inline-block">
-      <div class="mb-2 text-sm text-left">Y Axis</div>
-      <Dropdown
-        v-model="graph.yColumn"
-        :options="session.numericColumns"
-        class="w-10rem"
-        placeholder="select column"
-      />
-    </div>
-
-    <div class="mx-2 inline-block">
-      <div class="mb-2 text-sm text-left">X Axis</div>
-      <Dropdown
-        v-model="graph.xColumn"
-        :options="session.numericColumns"
-        class="w-10rem"
-        placeholder="select column"
-      />
-    </div>
-
-    <Button
-      v-tooltip.bottom="'remove graph'"
-      class="mx-2 p-button-danger p-button-outlined"
-      icon="pi pi-trash"
-      @click="session.removeGraph(index)"
-    />
-  </div>
-
-  <div class="mb-4">
+  <div class="mb-5">
     <Chart
       v-if="graph.xColumn && graph.yColumn"
       ref="chart"
@@ -145,8 +122,50 @@ const onClick = () => {
       @click="onClick"
     />
 
-    <Skeleton v-else class="mt-4" animation="none" height="14rem" />
+    <Skeleton
+      v-else
+      class="mt-4"
+      height="auto"
+      style="aspect-ratio: 2/1"
+      animation="none"
+    />
   </div>
+
+  <div class="mb-4 flex justify-content-center gap-2">
+    <span class="p-float-label">
+      <Dropdown
+        v-model="graph.yColumn"
+        :options="session.numericColumns"
+        class="w-8rem"
+      />
+      <label>Y Axis</label>
+    </span>
+
+    <Button
+      v-tooltip.bottom="'swap axes'"
+      class="p-button-secondary p-button-text rotate-90"
+      icon="pi pi-sort-alt"
+      @click="swapAxes"
+    />
+
+    <span class="p-float-label">
+      <Dropdown
+        v-model="graph.xColumn"
+        :options="session.numericColumns"
+        class="w-8rem"
+      />
+      <label>X Axis</label>
+    </span>
+
+    <Button
+      v-tooltip.bottom="'remove graph'"
+      class="p-button-danger p-button-text"
+      icon="pi pi-trash"
+      @click="session.removeGraph(index)"
+    />
+  </div>
+
+  <Divider />
 
   <div
     class="tooltip"

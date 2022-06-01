@@ -14,6 +14,7 @@ import 'primeicons/primeicons.css'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import Chip from 'primevue/chip'
+import Divider from 'primevue/divider'
 import Dropdown from 'primevue/dropdown'
 import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
@@ -37,6 +38,7 @@ app.use(pinia)
 app.component('Button', Button)
 app.component('Checkbox', Checkbox)
 app.component('Chip', Chip)
+app.component('Divider', Divider)
 app.component('Dropdown', Dropdown)
 app.component('InputNumber', InputNumber)
 app.component('InputText', InputText)
