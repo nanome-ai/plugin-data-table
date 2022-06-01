@@ -1,15 +1,15 @@
 <script setup>
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, toRef, watch } from 'vue'
 import { useSessionStore } from '../store/session'
 
 import Chart from 'primevue/chart'
 
 const props = defineProps({
-  index: Number
+  graph: Object
 })
 
 const session = useSessionStore()
-const graph = computed(() => session.graphs[props.index])
+const graph = toRef(props, 'graph')
 
 const chart = ref(null)
 const tooltip = reactive({
@@ -62,11 +62,10 @@ const chartOptions = computed(() => ({
     intersect: false
   },
   plugins: {
-    legend: {
-      display: false
-    },
+    legend: { display: false },
     title: {
       display: true,
+      font: { size: 16 },
       text: `${graph.value.yColumn} vs ${graph.value.xColumn}`
     },
     tooltip: {
@@ -76,18 +75,8 @@ const chartOptions = computed(() => ({
     }
   },
   scales: {
-    x: {
-      title: {
-        display: true,
-        text: graph.value.xColumn
-      }
-    },
-    y: {
-      title: {
-        display: true,
-        text: graph.value.yColumn
-      }
-    }
+    x: { title: { display: true, text: graph.value.xColumn } },
+    y: { title: { display: true, text: graph.value.yColumn } }
   }
 }))
 
@@ -122,16 +111,10 @@ const swapAxes = () => {
       @click="onClick"
     />
 
-    <Skeleton
-      v-else
-      class="mt-4"
-      height="auto"
-      style="aspect-ratio: 2/1"
-      animation="none"
-    />
+    <Skeleton v-else height="auto" style="aspect-ratio: 2/1" animation="none" />
   </div>
 
-  <div class="mb-4 flex justify-content-center gap-2">
+  <div class="mb-2 flex justify-content-center gap-2">
     <span class="p-float-label">
       <Dropdown
         v-model="graph.yColumn"

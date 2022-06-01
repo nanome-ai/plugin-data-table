@@ -1,6 +1,7 @@
 import { markRaw } from 'vue'
 import { defineStore } from 'pinia'
 import { STATUS, EVENT, useWS } from '../ws'
+import { randStr } from '../utils'
 
 const setupEventListeners = (store, ws) => {
   ws.on(EVENT.STATUS, status => {
@@ -85,6 +86,7 @@ export const useSessionStore = defineStore('session', {
     frames: [],
     graphs: [
       {
+        id: randStr(6),
         xColumn: null,
         yColumn: null,
         type: 'scatter'
@@ -144,6 +146,7 @@ export const useSessionStore = defineStore('session', {
     // #region graphs
     addGraph() {
       this.graphs.push({
+        id: randStr(6),
         xColumn: null,
         yColumn: null,
         type: 'scatter'

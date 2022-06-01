@@ -46,6 +46,10 @@ html {
   border-radius: 5px;
 }
 
+.overflow-auto {
+  scrollbar-gutter: stable;
+}
+
 body {
   margin: 0;
   overflow-x: hidden;

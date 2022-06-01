@@ -113,7 +113,7 @@ const resetFilter = filter => {
 </script>
 
 <template>
-  <div class="mt-2 max-w-full max-h-full overflow-auto">
+  <div class="mt-2 overflow-auto">
     <DataTable
       v-model:filters="filters"
       v-model:selection="selection"
