@@ -16,7 +16,7 @@ const broadcast = (ws, type, data, toPlugin = null) => {
     : 'broadcast'
 
   if (type !== 'image') {
-    const debug = type === 'data' ? '---' : data
+    const debug = type === 'frames' ? '---' : data
     console.log(ws.session, logType, type, debug)
   }
 

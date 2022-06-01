@@ -19,7 +19,9 @@ import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
 import Menu from 'primevue/menu'
 import MultiSelect from 'primevue/multiselect'
+import Skeleton from 'primevue/skeleton'
 import Toast from 'primevue/toast'
+import ToggleButton from 'primevue/togglebutton'
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -39,7 +41,9 @@ app.component('InputNumber', InputNumber)
 app.component('InputText', InputText)
 app.component('Menu', Menu)
 app.component('MultiSelect', MultiSelect)
+app.component('Skeleton', Skeleton)
 app.component('Toast', Toast)
+app.component('ToggleButton', ToggleButton)
 
 app.use(PrimeVue, {
   ripple: true,

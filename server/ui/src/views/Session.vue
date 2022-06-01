@@ -15,6 +15,7 @@ const session = useSessionStore()
 
 const selectionMode = ref(false)
 const reorderMode = ref(false)
+const showGraph = ref(false)
 // const oldData = ref([])
 
 // const saveReorder = () => {
@@ -82,51 +83,63 @@ session.connect(props.id)
       </div>
 
       <template v-else>
-        <div>
-          <div class="mx-2 inline-block">
-            <div class="mb-2 text-sm text-left">Entry</div>
-            <Dropdown
-              v-model="session.selectedComplex"
-              :options="session.complexes"
-              class="w-15rem"
-              option-label="name"
-              option-value="index"
-              placeholder="select an entry"
-              @change="({ value }) => session.selectComplex(value)"
-            />
-          </div>
-
-          <div class="mx-2 inline-block">
-            <div class="mb-2 text-sm text-left">Show Columns</div>
-            <MultiSelect
-              v-model="session.selectedColumns"
-              :options="session.columns"
-              :max-selected-labels="0.1"
-              class="w-15rem"
-              placeholder="toggle columns"
-              selected-items-label="toggle columns"
-            />
-          </div>
-
-          <div class="mx-2 inline-block">
-            <div class="mb-2 text-sm text-left">Name Column</div>
-            <Dropdown
-              v-model="session.nameColumn"
-              :options="session.columns"
-              class="w-15rem"
-              placeholder="no name column"
-            />
-          </div>
-        </div>
-
         <div class="flex flex-grow-1 min-h-0">
-          <ComplexTable
-            class="flex-grow-1"
-            :multi-select="selectionMode"
-            :reorderable="reorderMode"
-          />
+          <div class="flex flex-column flex-grow-1 min-w-0">
+            <div>
+              <div class="mx-2 inline-block">
+                <div class="mb-2 text-sm text-left">Entry</div>
+                <Dropdown
+                  v-model="session.selectedComplex"
+                  :options="session.complexes"
+                  class="w-15rem"
+                  option-label="name"
+                  option-value="index"
+                  placeholder="select an entry"
+                  @change="({ value }) => session.selectComplex(value)"
+                />
+              </div>
 
-          <div class="mt-4 p-2 w-12">
+              <div class="mx-2 inline-block">
+                <div class="mb-2 text-sm text-left">Show Columns</div>
+                <MultiSelect
+                  v-model="session.selectedColumns"
+                  :options="session.columns"
+                  :max-selected-labels="0.1"
+                  class="w-15rem"
+                  placeholder="toggle columns"
+                  selected-items-label="toggle columns"
+                />
+              </div>
+
+              <div class="mx-2 inline-block">
+                <div class="mb-2 text-sm text-left">Name Column</div>
+                <Dropdown
+                  v-model="session.nameColumn"
+                  :options="session.columns"
+                  class="w-15rem"
+                  placeholder="no name column"
+                />
+              </div>
+
+              <ToggleButton
+                v-model="showGraph"
+                class="mx-2"
+                on-icon="pi pi-chart-bar"
+                on-label="graphs"
+                off-icon="pi pi-chart-bar"
+                off-label="graphs"
+              />
+            </div>
+
+            <ComplexTable
+              class="flex-grow-1"
+              :multi-select="selectionMode"
+              :reorderable="reorderMode"
+            />
+          </div>
+
+          <div v-if="showGraph" class="pl-4 w-12">
+            <div class="mb-6 text-xl">Quick Graphs</div>
             <ComplexGraph />
           </div>
         </div>

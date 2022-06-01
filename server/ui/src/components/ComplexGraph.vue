@@ -4,18 +4,6 @@ import { useSessionStore } from '../store/session'
 
 import Chart from 'primevue/chart'
 
-const props = defineProps({
-  columns: Array,
-  columnTypes: Object,
-  selectedComplex: Number,
-  data: Array,
-  images: Object,
-  nameColumn: String,
-  selectedFrame: Object
-})
-
-const emit = defineEmits(['update:selectedFrame'])
-
 const session = useSessionStore()
 
 const chart = ref(null)
@@ -28,7 +16,7 @@ const tooltip = reactive({
   items: []
 })
 
-const data = computed(() => {
+const chartData = computed(() => {
   const data = session.frames.map(item => ({
     x: item[xAxisColumn.value],
     y: item[yAxisColumn.value]
@@ -72,17 +60,31 @@ const chartOptions = computed(() => ({
     intersect: false
   },
   plugins: {
+    legend: {
+      display: false
+    },
     title: {
       display: true,
       text: `${xAxisColumn.value} vs ${yAxisColumn.value}`
-    },
-    legend: {
-      display: false
     },
     tooltip: {
       enabled: false,
       position: 'nearest',
       external: tooltipHandler
+    }
+  },
+  scales: {
+    x: {
+      title: {
+        display: true,
+        text: xAxisColumn.value
+      }
+    },
+    y: {
+      title: {
+        display: true,
+        text: yAxisColumn.value
+      }
     }
   }
 }))
@@ -102,34 +104,38 @@ const onClick = () => {
 </script>
 
 <template>
-  <div class="mx-2 inline-block">
-    <div class="mb-2 text-sm text-left">X Axis</div>
-    <Dropdown
-      v-model="xAxisColumn"
-      :options="session.numericColumns"
-      class="w-15rem"
-      placeholder="select column"
-    />
-  </div>
+  <div class="mb-2">
+    <div class="mx-2 inline-block">
+      <div class="mb-2 text-sm text-left">X Axis</div>
+      <Dropdown
+        v-model="xAxisColumn"
+        :options="session.numericColumns"
+        class="w-10rem"
+        placeholder="select column"
+      />
+    </div>
 
-  <div class="mx-2 inline-block">
-    <div class="mb-2 text-sm text-left">Y Axis</div>
-    <Dropdown
-      v-model="yAxisColumn"
-      :options="session.numericColumns"
-      class="w-15rem"
-      placeholder="select column"
-    />
+    <div class="mx-2 inline-block">
+      <div class="mb-2 text-sm text-left">Y Axis</div>
+      <Dropdown
+        v-model="yAxisColumn"
+        :options="session.numericColumns"
+        class="w-10rem"
+        placeholder="select column"
+      />
+    </div>
   </div>
 
   <Chart
     v-if="xAxisColumn && yAxisColumn"
     ref="chart"
-    :data="data"
+    :data="chartData"
     :options="chartOptions"
     type="scatter"
     @click="onClick"
   />
+
+  <Skeleton v-else class="mt-4" animation="none" height="14rem" />
 
   <div
     class="tooltip"
@@ -146,7 +152,9 @@ const onClick = () => {
     <div
       v-for="item in tooltip.items.slice(0, 3)"
       :key="item.index"
-      :style="{ background: selectedFrame === item ? '#fff2' : '#0000' }"
+      :style="{
+        background: session.selectedFrame === item ? '#fff2' : '#0000'
+      }"
       class="p-2 text-center"
     >
       <img :src="session.getImage(item.index)" class="h-4rem" />
