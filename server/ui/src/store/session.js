@@ -79,20 +79,27 @@ const setupEventListeners = (store, ws) => {
 
 export const useSessionStore = defineStore('session', {
   state: () => ({
-    ws: null,
-    status: STATUS.OFFLINE,
-    loading: false,
-    complexes: [],
-    images: {},
-    frames: [],
     columns: [],
     columnTypes: {},
-    nameColumn: null,
+    complexes: [],
+    frames: [],
+    graphs: [
+      {
+        xColumn: null,
+        yColumn: null,
+        type: 'scatter'
+      }
+    ],
     hiddenFrames: [],
-    selectedComplex: null,
+    images: {},
+    loading: false,
+    nameColumn: null,
     selectedColumns: [],
+    selectedComplex: null,
     selectedFrame: null,
-    selectedFrames: []
+    selectedFrames: [],
+    status: STATUS.OFFLINE,
+    ws: null
   }),
 
   getters: {
@@ -120,6 +127,7 @@ export const useSessionStore = defineStore('session', {
   },
 
   actions: {
+    // #region websockets
     connect(id) {
       const ws = useWS(id)
       this.ws = markRaw(ws)
@@ -131,7 +139,23 @@ export const useSessionStore = defineStore('session', {
       if (!this.ws) return
       this.ws.disconnect()
     },
+    // #endregion
 
+    // #region graphs
+    addGraph() {
+      this.graphs.push({
+        xColumn: null,
+        yColumn: null,
+        type: 'scatter'
+      })
+    },
+
+    removeGraph(index) {
+      this.graphs.splice(index, 1)
+    },
+    // #endregion
+
+    // #region selection
     deleteSelection() {
       this.loading = true
       this.ws.send(EVENT.DELETE_FRAMES, this.selectedFrameIndices)
@@ -168,5 +192,6 @@ export const useSessionStore = defineStore('session', {
     unhideAll() {
       this.hiddenFrames = []
     }
+    // #endregion
   }
 })

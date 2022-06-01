@@ -15,7 +15,7 @@ const session = useSessionStore()
 
 const selectionMode = ref(false)
 const reorderMode = ref(false)
-const showGraph = ref(false)
+const showGraphs = ref(false)
 // const oldData = ref([])
 
 // const saveReorder = () => {
@@ -122,12 +122,11 @@ session.connect(props.id)
               </div>
 
               <ToggleButton
-                v-model="showGraph"
+                v-model="showGraphs"
+                v-tooltip.bottom="showGraphs ? 'hide graphs' : 'show graphs'"
                 class="mx-2"
                 on-icon="pi pi-chart-bar"
-                on-label="graphs"
                 off-icon="pi pi-chart-bar"
-                off-label="graphs"
               />
             </div>
 
@@ -138,9 +137,19 @@ session.connect(props.id)
             />
           </div>
 
-          <div v-if="showGraph" class="pl-4 w-12">
+          <div v-if="showGraphs" class="pl-4 w-12 overflow-auto">
             <div class="mb-6 text-xl">Quick Graphs</div>
-            <ComplexGraph />
+            <ComplexGraph
+              v-for="(graph, index) in session.graphs"
+              :index="index"
+            />
+
+            <Button
+              class="p-button-outlined"
+              label="add graph"
+              icon="pi pi-plus"
+              @click="session.addGraph"
+            />
           </div>
         </div>
 
@@ -151,7 +160,7 @@ session.connect(props.id)
               class="mx-2 p-button-danger"
               @click="session.deleteSelection"
             >
-              Delete
+              <i class="mr-2 pi pi-trash" /> Delete
             </Button>
             <Menu
               ref="duplicate"
@@ -174,7 +183,7 @@ session.connect(props.id)
               class="mx-2"
               @click="e => $refs.duplicate.toggle(e)"
             >
-              Duplicate
+              <i class="mr-2 pi pi-clone" /> Duplicate
             </Button>
             <Menu
               ref="split"
@@ -197,14 +206,14 @@ session.connect(props.id)
               class="mx-2"
               @click="e => $refs.split.toggle(e)"
             >
-              Split
+              <i class="mr-2 pi pi-clone" /> Split
             </Button>
             <Button
               :disabled="!session.selectedFrames.length"
               class="mx-2"
               @click="session.hideSelection"
             >
-              Hide
+              <i class="mr-2 pi pi-eye-slash" /> Hide
             </Button>
           </template>
 
@@ -217,7 +226,7 @@ session.connect(props.id)
             class="mx-2 p-button-outlined"
             @click="session.unhideAll"
           >
-            Unhide All
+            <i class="mr-2 pi pi-eye" /> Unhide All
           </Button>
 
           <Button

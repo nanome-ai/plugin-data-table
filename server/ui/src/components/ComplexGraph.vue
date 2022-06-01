@@ -4,12 +4,14 @@ import { useSessionStore } from '../store/session'
 
 import Chart from 'primevue/chart'
 
+const props = defineProps({
+  index: Number
+})
+
 const session = useSessionStore()
+const graph = computed(() => session.graphs[props.index])
 
 const chart = ref(null)
-const xAxisColumn = ref(null)
-const yAxisColumn = ref(null)
-
 const tooltip = reactive({
   x: null,
   y: null,
@@ -18,8 +20,8 @@ const tooltip = reactive({
 
 const chartData = computed(() => {
   const data = session.frames.map(item => ({
-    x: item[xAxisColumn.value],
-    y: item[yAxisColumn.value]
+    x: item[graph.value.xColumn],
+    y: item[graph.value.yColumn]
   }))
 
   return { datasets: [{ data }] }
@@ -65,7 +67,7 @@ const chartOptions = computed(() => ({
     },
     title: {
       display: true,
-      text: `${xAxisColumn.value} vs ${yAxisColumn.value}`
+      text: `${graph.value.yColumn} vs ${graph.value.xColumn}`
     },
     tooltip: {
       enabled: false,
@@ -77,13 +79,13 @@ const chartOptions = computed(() => ({
     x: {
       title: {
         display: true,
-        text: xAxisColumn.value
+        text: graph.value.xColumn
       }
     },
     y: {
       title: {
         display: true,
-        text: yAxisColumn.value
+        text: graph.value.yColumn
       }
     }
   }
@@ -106,9 +108,9 @@ const onClick = () => {
 <template>
   <div class="mb-2">
     <div class="mx-2 inline-block">
-      <div class="mb-2 text-sm text-left">X Axis</div>
+      <div class="mb-2 text-sm text-left">Y Axis</div>
       <Dropdown
-        v-model="xAxisColumn"
+        v-model="graph.yColumn"
         :options="session.numericColumns"
         class="w-10rem"
         placeholder="select column"
@@ -116,26 +118,35 @@ const onClick = () => {
     </div>
 
     <div class="mx-2 inline-block">
-      <div class="mb-2 text-sm text-left">Y Axis</div>
+      <div class="mb-2 text-sm text-left">X Axis</div>
       <Dropdown
-        v-model="yAxisColumn"
+        v-model="graph.xColumn"
         :options="session.numericColumns"
         class="w-10rem"
         placeholder="select column"
       />
     </div>
+
+    <Button
+      v-tooltip.bottom="'remove graph'"
+      class="mx-2 p-button-danger p-button-outlined"
+      icon="pi pi-trash"
+      @click="session.removeGraph(index)"
+    />
   </div>
 
-  <Chart
-    v-if="xAxisColumn && yAxisColumn"
-    ref="chart"
-    :data="chartData"
-    :options="chartOptions"
-    type="scatter"
-    @click="onClick"
-  />
+  <div class="mb-4">
+    <Chart
+      v-if="graph.xColumn && graph.yColumn"
+      ref="chart"
+      :data="chartData"
+      :options="chartOptions"
+      type="scatter"
+      @click="onClick"
+    />
 
-  <Skeleton v-else class="mt-4" animation="none" height="14rem" />
+    <Skeleton v-else class="mt-4" animation="none" height="14rem" />
+  </div>
 
   <div
     class="tooltip"
@@ -146,8 +157,8 @@ const onClick = () => {
     }"
   >
     <div v-if="tooltip.items.length" class="p-2">
-      <div>{{ xAxisColumn }}: {{ tooltip.items[0][xAxisColumn] }}</div>
-      <div>{{ yAxisColumn }}: {{ tooltip.items[0][yAxisColumn] }}</div>
+      <div>{{ graph.xColumn }}: {{ tooltip.items[0][graph.xColumn] }}</div>
+      <div>{{ graph.yColumn }}: {{ tooltip.items[0][graph.yColumn] }}</div>
     </div>
     <div
       v-for="item in tooltip.items.slice(0, 3)"
@@ -177,5 +188,6 @@ const onClick = () => {
   transform: translate(-50%, 0);
   transition: all 0.3s ease;
   user-select: none;
+  z-index: 1000;
 }
 </style>

@@ -22,6 +22,7 @@ import MultiSelect from 'primevue/multiselect'
 import Skeleton from 'primevue/skeleton'
 import Toast from 'primevue/toast'
 import ToggleButton from 'primevue/togglebutton'
+import Tooltip from 'primevue/tooltip'
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -44,6 +45,8 @@ app.component('MultiSelect', MultiSelect)
 app.component('Skeleton', Skeleton)
 app.component('Toast', Toast)
 app.component('ToggleButton', ToggleButton)
+
+app.directive('tooltip', Tooltip)
 
 app.use(PrimeVue, {
   ripple: true,
