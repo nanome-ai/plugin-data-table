@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+import { useConfirm } from 'primevue/useconfirm'
 import { STATUS } from '../ws'
 import { useSessionStore } from '../store/session'
 
@@ -12,6 +13,7 @@ const props = defineProps({
 })
 
 const session = useSessionStore()
+const confirm = useConfirm()
 
 const selectionMode = ref(false)
 const reorderMode = ref(false)
@@ -38,6 +40,21 @@ const showGraphs = ref(false)
 const toggleSelectionMode = () => {
   selectionMode.value = !selectionMode.value
   session.selectedFrames = []
+}
+
+const confirmDelete = e => {
+  confirm.require({
+    target: e.currentTarget,
+    message: 'Are you sure you want to delete the selected frame(s)?',
+    icon: 'pi pi-trash',
+    acceptClass: 'p-button-danger',
+    acceptLabel: 'Delete',
+    rejectClass: 'p-button-secondary p-button-text',
+    rejectLabel: 'Cancel',
+    accept: () => {
+      session.deleteSelection()
+    }
+  })
 }
 
 session.connect(props.id)
@@ -166,7 +183,7 @@ session.connect(props.id)
             <Button
               :disabled="!session.selectedFrames.length"
               class="mx-2 p-button-danger"
-              @click="session.deleteSelection"
+              @click="confirmDelete"
             >
               <i class="mr-2 pi pi-trash" /> Delete
             </Button>

@@ -1,6 +1,9 @@
 <script setup>
 import { onMounted } from 'vue'
 
+import ConfirmPopup from 'primevue/confirmpopup'
+import Toast from 'primevue/toast'
+
 onMounted(() => {
   document.body.addEventListener('click', e => {
     document.body.classList.add('using-mouse')
@@ -17,6 +20,7 @@ onMounted(() => {
 
 <template>
   <router-view />
+  <ConfirmPopup />
   <Toast />
 </template>
 

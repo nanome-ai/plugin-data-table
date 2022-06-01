@@ -2,6 +2,7 @@ import { createApp, markRaw } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import PrimeVue from 'primevue/config'
+import ConfirmationService from 'primevue/confirmationservice'
 import ToastEventBus from 'primevue/toasteventbus'
 import ToastService from 'primevue/toastservice'
 import router from './router'
@@ -21,7 +22,6 @@ import InputText from 'primevue/inputtext'
 import Menu from 'primevue/menu'
 import MultiSelect from 'primevue/multiselect'
 import Skeleton from 'primevue/skeleton'
-import Toast from 'primevue/toast'
 import ToggleButton from 'primevue/togglebutton'
 import Tooltip from 'primevue/tooltip'
 
@@ -45,7 +45,6 @@ app.component('InputText', InputText)
 app.component('Menu', Menu)
 app.component('MultiSelect', MultiSelect)
 app.component('Skeleton', Skeleton)
-app.component('Toast', Toast)
 app.component('ToggleButton', ToggleButton)
 
 app.directive('tooltip', Tooltip)
@@ -54,6 +53,7 @@ app.use(PrimeVue, {
   ripple: true,
   inputStyle: 'filled'
 })
+app.use(ConfirmationService)
 app.use(ToastService)
 app.use(router)
 
