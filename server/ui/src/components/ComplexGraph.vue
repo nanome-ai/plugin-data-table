@@ -5,7 +5,8 @@ import { useSessionStore } from '../store/session'
 import Chart from 'primevue/chart'
 
 const props = defineProps({
-  graph: Object
+  graph: Object,
+  fullscreen: Boolean
 })
 
 const session = useSessionStore()
@@ -27,6 +28,9 @@ const chartData = computed(() => {
   return { datasets: [{ data }] }
 })
 
+const fontMultiplier = computed(() => (props.fullscreen ? 1.2 : 1))
+const radiusMultiplier = computed(() => (props.fullscreen ? 1.5 : 1))
+
 const tooltipHandler = ctx => {
   if (!ctx.tooltip.opacity) {
     tooltip.items = []
@@ -35,7 +39,7 @@ const tooltipHandler = ctx => {
 
   const rect = ctx.chart.canvas.getBoundingClientRect()
   tooltip.x = rect.left + ctx.tooltip.caretX
-  tooltip.y = rect.top + ctx.tooltip.caretY + 5
+  tooltip.y = rect.top + ctx.tooltip.caretY + 5 * radiusMultiplier.value
   tooltip.items = ctx.tooltip.dataPoints.map(d => session.frames[d.dataIndex])
 }
 
@@ -52,8 +56,10 @@ const chartOptions = computed(() => ({
       backgroundColor: ctx => {
         return isSelected(ctx.dataIndex) ? '#fff' : '#fff4'
       },
+      hoverRadius: () => 4 * radiusMultiplier.value,
       radius: ctx => {
-        return isSelected(ctx.dataIndex) ? 5 : 3
+        const r = isSelected(ctx.dataIndex) ? 4 : 3
+        return r * radiusMultiplier.value
       }
     }
   },
@@ -65,7 +71,7 @@ const chartOptions = computed(() => ({
     legend: { display: false },
     title: {
       display: true,
-      font: { size: 16 },
+      font: { size: 16 * fontMultiplier.value, weight: 'normal' },
       text: `${graph.value.yColumn} vs ${graph.value.xColumn}`
     },
     tooltip: {
@@ -75,8 +81,22 @@ const chartOptions = computed(() => ({
     }
   },
   scales: {
-    x: { title: { display: true, text: graph.value.xColumn } },
-    y: { title: { display: true, text: graph.value.yColumn } }
+    x: {
+      ticks: { font: { size: 14 * fontMultiplier.value } },
+      title: {
+        display: true,
+        font: { size: 14 * fontMultiplier.value },
+        text: graph.value.xColumn
+      }
+    },
+    y: {
+      ticks: { font: { size: 14 * fontMultiplier.value } },
+      title: {
+        display: true,
+        font: { size: 14 * fontMultiplier.value },
+        text: graph.value.yColumn
+      }
+    }
   }
 }))
 
@@ -140,15 +160,24 @@ const swapAxes = () => {
       <label>X Axis</label>
     </span>
 
-    <Button
-      v-tooltip.bottom="'remove graph'"
-      class="p-button-danger p-button-text"
-      icon="pi pi-trash"
-      @click="session.removeGraph(index)"
-    />
+    <template v-if="!props.fullscreen">
+      <Button
+        v-tooltip.bottom="'fullscreen'"
+        class="p-button-secondary p-button-text"
+        icon="pi pi-window-maximize"
+        @click="session.selectGraph(graph)"
+      />
+
+      <Button
+        v-tooltip.bottom="'remove graph'"
+        class="p-button-danger p-button-text"
+        icon="pi pi-trash"
+        @click="session.removeGraph(graph)"
+      />
+    </template>
   </div>
 
-  <Divider />
+  <Divider v-if="!props.fullscreen" />
 
   <div
     class="tooltip"

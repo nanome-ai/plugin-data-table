@@ -54,6 +54,11 @@ html {
   scrollbar-gutter: stable;
 }
 
+.p-sidebar-content {
+  position: unset;
+  height: 100%;
+}
+
 body {
   margin: 0;
   overflow-x: hidden;

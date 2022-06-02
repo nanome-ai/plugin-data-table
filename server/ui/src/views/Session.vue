@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useConfirm } from 'primevue/useconfirm'
 import { STATUS } from '../ws'
 import { useSessionStore } from '../store/session'
@@ -18,6 +18,14 @@ const confirm = useConfirm()
 const selectionMode = ref(false)
 const reorderMode = ref(false)
 const showGraphs = ref(false)
+
+const showFullscreenGraph = computed({
+  get: () => session.selectedGraph !== null,
+  set: value => {
+    if (!value) session.selectGraph(null)
+  }
+})
+
 // const oldData = ref([])
 
 // const saveReorder = () => {
@@ -156,16 +164,17 @@ session.connect(props.id)
 
           <template v-if="showGraphs">
             <Divider layout="vertical" />
+
             <div
               class="pl-2 flex flex-column overflow-auto"
               style="min-width: 33%"
             >
-              <div class="mb-4 text-xl">Quick Graphs</div>
               <ComplexGraph
                 v-for="graph in session.graphs"
                 :key="graph.id"
                 :graph="graph"
               />
+
               <div>
                 <Button
                   class="p-button-text"
@@ -270,6 +279,14 @@ session.connect(props.id)
             {{ reorderMode ? 'Cancel' : 'Reorder Mode' }}
           </Button> -->
         </div>
+
+        <Sidebar v-model:visible="showFullscreenGraph" position="full">
+          <ComplexGraph
+            v-if="showFullscreenGraph"
+            :graph="session.selectedGraph"
+            fullscreen
+          />
+        </Sidebar>
       </template>
     </div>
   </div>

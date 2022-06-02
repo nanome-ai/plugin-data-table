@@ -21,9 +21,13 @@ import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
 import Menu from 'primevue/menu'
 import MultiSelect from 'primevue/multiselect'
+import Sidebar from 'primevue/sidebar'
 import Skeleton from 'primevue/skeleton'
 import ToggleButton from 'primevue/togglebutton'
 import Tooltip from 'primevue/tooltip'
+
+import { Chart } from 'chart.js'
+Chart.defaults.color = '#ccc'
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -44,14 +48,14 @@ app.component('InputNumber', InputNumber)
 app.component('InputText', InputText)
 app.component('Menu', Menu)
 app.component('MultiSelect', MultiSelect)
+app.component('Sidebar', Sidebar)
 app.component('Skeleton', Skeleton)
 app.component('ToggleButton', ToggleButton)
 
 app.directive('tooltip', Tooltip)
 
 app.use(PrimeVue, {
-  ripple: true,
-  inputStyle: 'filled'
+  ripple: true
 })
 app.use(ConfirmationService)
 app.use(ToastService)

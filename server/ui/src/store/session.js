@@ -100,6 +100,7 @@ export const useSessionStore = defineStore('session', {
     selectedComplex: null,
     selectedFrame: null,
     selectedFrames: [],
+    selectedGraph: null,
     status: STATUS.OFFLINE,
     ws: null
   }),
@@ -153,8 +154,15 @@ export const useSessionStore = defineStore('session', {
       })
     },
 
-    removeGraph(index) {
+    removeGraph(graph) {
+      const index = this.graphs.indexOf(graph)
+      if (index === -1) return
       this.graphs.splice(index, 1)
+      this.selectedGraph = null
+    },
+
+    selectGraph(graph) {
+      this.selectedGraph = graph
     },
     // #endregion
 
