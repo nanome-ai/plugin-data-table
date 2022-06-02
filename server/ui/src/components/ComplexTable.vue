@@ -38,7 +38,7 @@ const selection = computed({
 })
 
 const filteredColumns = computed(() => {
-  const columns = session.columns.filter(c => c !== session.nameColumn)
+  const columns = session.displayColumns.filter(c => c !== session.nameColumn)
   columns.unshift(session.nameColumn)
   return columns
 })
