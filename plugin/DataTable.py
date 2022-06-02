@@ -21,16 +21,15 @@ Draw.DrawingOptions.atomLabelFontSize = 40
 Draw.DrawingOptions.dotsPerAngstrom = 100
 Draw.DrawingOptions.bondLineWidth = 8
 
-IS_DOCKER = os.path.exists('/.dockerenv')
 
 class DataTable(nanome.AsyncPluginInstance):
+
     @async_callback
     async def start(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.temp_sdf = tempfile.NamedTemporaryFile(delete=False, suffix='.sdf', dir=self.temp_dir.name)
 
-        self.url, self.https = self.custom_data
-        self.server_url = 'data-table-server' if IS_DOCKER else self.url
+        self.server_url, self.https = self.custom_data
         self.session = ''.join(random.choices(string.ascii_lowercase, k=4))
 
         self.selected_complex = None
@@ -95,7 +94,7 @@ class DataTable(nanome.AsyncPluginInstance):
 
     def on_run(self):
         protocol = 'https' if self.https else 'http'
-        self.open_url(f'{protocol}://{self.url}/{self.session}')
+        self.open_url(f'{protocol}://{self.server_url}/{self.session}')
 
     @async_callback
     async def on_stop(self):
@@ -285,14 +284,14 @@ def main():
 
     https = args.https
     port = args.web_port
-    url = args.url
+    server_url = args.url or 'data-table-server' # defaults to Docker container name
 
     if port:
-        url = f'{url}:{port}'
+        server_url = f'{server_url}:{port}'
 
     plugin = nanome.Plugin('Data Table', 'A Nanome plugin to view multi-frame structure metadata in a table', 'Analysis', False)
     plugin.set_plugin_class(DataTable)
-    plugin.set_custom_data(url, https)
+    plugin.set_custom_data(server_url, https)
     plugin.run()
 
 
