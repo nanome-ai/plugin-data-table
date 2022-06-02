@@ -278,13 +278,15 @@ class DataTable(nanome.AsyncPluginInstance):
 def main():
     parser = argparse.ArgumentParser(description='Parse arguments for Data Table plugin')
     parser.add_argument('--https', dest='https', action='store_true', help='Enable HTTPS on the Data Table Web UI')
-    parser.add_argument('-u', '--url', dest='url', type=str, help='URL of the web server', required=True)
+    parser.add_argument('-u', '--url', dest='url', type=str, help='URL of the web server')
     parser.add_argument('-w', '--web-port', dest='web_port', type=int, help='Custom port for connecting to Data Table Web UI.')
     args, _ = parser.parse_known_args()
 
     https = args.https
     port = args.web_port
-    server_url = args.url or 'data-table-server' # defaults to Docker container name
+
+    # defaults to Docker container name if arg or env var is not set
+    server_url = args.url or os.environ.get('SERVER_URL', None ) or 'data-table-server'
 
     if port:
         server_url = f'{server_url}:{port}'
