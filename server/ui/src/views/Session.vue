@@ -84,7 +84,7 @@ session.connect(props.id)
     />
   </IntroPanel>
 
-  <div v-else class="h-full flex align-items-center justify-content-center">
+  <div v-else class="h-full flex-center">
     <div
       class="flex flex-column surface-card max-w-full max-h-full min-w-2 p-4 shadow-2 border-round text-center"
     >
@@ -110,46 +110,45 @@ session.connect(props.id)
       <template v-else>
         <div class="flex min-h-0">
           <div class="flex flex-column min-w-0">
-            <div>
-              <div class="mx-2 inline-block">
-                <div class="mb-2 text-sm text-left">Entry</div>
+            <div class="mt-2 flex justify-content-center gap-2">
+              <span class="p-float-label">
                 <Dropdown
                   v-model="session.selectedComplex"
                   :options="session.complexes"
-                  class="w-15rem"
+                  class="w-15rem p-inputwrapper-filled"
                   option-label="name"
                   option-value="index"
                   placeholder="select an entry"
                   @change="({ value }) => session.selectComplex(value)"
                 />
-              </div>
+                <label>Entry</label>
+              </span>
 
-              <div class="mx-2 inline-block">
-                <div class="mb-2 text-sm text-left">Show Columns</div>
+              <span class="p-float-label">
                 <MultiSelect
                   v-model="session.selectedColumns"
                   :options="session.columns"
                   :max-selected-labels="0.1"
-                  class="w-15rem"
+                  class="w-15rem p-inputwrapper-filled"
                   placeholder="toggle columns"
                   selected-items-label="toggle columns"
                 />
-              </div>
+                <label>Show Columns</label>
+              </span>
 
-              <div class="mx-2 inline-block">
-                <div class="mb-2 text-sm text-left">Name Column</div>
+              <span class="p-float-label">
                 <Dropdown
                   v-model="session.nameColumn"
                   :options="session.columns"
-                  class="w-15rem"
+                  class="w-15rem p-inputwrapper-filled"
                   placeholder="no name column"
                 />
-              </div>
+                <label>Name Column</label>
+              </span>
 
               <ToggleButton
                 v-model="showGraphs"
                 v-tooltip.bottom="showGraphs ? 'hide graphs' : 'show graphs'"
-                class="mx-2"
                 on-icon="pi pi-chart-bar"
                 off-icon="pi pi-chart-bar"
               />

@@ -50,6 +50,12 @@ html {
   border-radius: 5px;
 }
 
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .overflow-auto {
   scrollbar-gutter: stable;
 }
