@@ -1,5 +1,6 @@
 <script setup>
-import { computed, reactive, ref, toRef, watch } from 'vue'
+import { computed, reactive, ref, toRef, watch, watchEffect } from 'vue'
+import regression from 'regression'
 import { useSessionStore } from '../store/session'
 
 import Chart from 'primevue/chart'
@@ -13,19 +14,68 @@ const session = useSessionStore()
 const graph = toRef(props, 'graph')
 
 const chart = ref(null)
+const settings = ref(null)
+const chartData = ref([])
+
 const tooltip = reactive({
   x: null,
   y: null,
   items: []
 })
 
-const chartData = computed(() => {
+watchEffect(() => {
   const data = session.frames.map(item => ({
-    x: item[graph.value.xColumn],
-    y: item[graph.value.yColumn]
+    x: +item[graph.value.xColumn],
+    y: +item[graph.value.yColumn]
   }))
 
-  return { datasets: [{ data }] }
+  const datasets = [{ data }]
+  chartData.value = { datasets }
+
+  graph.value.reg.error = false
+
+  if (graph.value.type === 'scatter' && graph.value.reg.type !== 'none') {
+    const points = data
+      .map(point => [point.x, point.y])
+      .sort((a, b) => a[0] - b[0])
+    const r = regression[graph.value.reg.type](points, {
+      order: graph.value.reg.order
+    })
+
+    graph.value.reg.error = isNaN(r.r2)
+    graph.value.reg.eq = r.string.replace(/\^([-.\d()x]+)/g, '<sup>$1</sup>')
+    graph.value.reg.r2 = r.r2
+    if (graph.value.reg.error) return
+
+    const xValues = points.map(point => point[0])
+    const minX = Math.min(...xValues)
+    const maxX = Math.max(...xValues)
+    const step = (maxX - minX) / 300
+
+    const rData = Array.from({ length: 300 }, (_, i) => ({
+      x: minX + i * step,
+      y: r.predict(minX + i * step)[1]
+    }))
+
+    const yValues = points.map(point => point[1])
+    const minY = Math.min(...yValues)
+    const maxY = Math.max(...yValues)
+    const yPad = (maxY - minY) / 10
+
+    // hide regression that goes out of bounds
+    for (const p of rData) {
+      if (p.y < minY - yPad || p.y > maxY + yPad) p.y = null
+    }
+
+    datasets.push({
+      type: 'line',
+      data: rData,
+      borderColor: '#' + graph.value.reg.color,
+      pointRadius: 0,
+      pointHitRadius: 0,
+      pointHoverRadius: 0
+    })
+  }
 })
 
 const fontMultiplier = computed(() => (props.fullscreen ? 1.2 : 1))
@@ -77,6 +127,7 @@ const chartOptions = computed(() => ({
     tooltip: {
       enabled: false,
       position: 'nearest',
+      filter: item => item.datasetIndex === 0,
       external: tooltipHandler
     }
   },
@@ -127,7 +178,7 @@ const swapAxes = () => {
       ref="chart"
       :data="chartData"
       :options="chartOptions"
-      type="scatter"
+      :type="graph.type"
       @click="onClick"
     />
 
@@ -160,6 +211,13 @@ const swapAxes = () => {
       <label>X Axis</label>
     </span>
 
+    <Button
+      v-tooltip.bottom="'settings'"
+      class="p-button-secondary p-button-text"
+      icon="pi pi-cog"
+      @click="e => settings.toggle(e)"
+    />
+
     <template v-if="!props.fullscreen">
       <Button
         v-tooltip.bottom="'fullscreen'"
@@ -178,6 +236,58 @@ const swapAxes = () => {
   </div>
 
   <Divider v-if="!props.fullscreen" />
+
+  <OverlayPanel ref="settings">
+    <div class="w-12rem flex flex-column gap-5">
+      <!-- <span class="mt-3 p-float-label">
+        <Dropdown
+          v-model="graph.type"
+          :options="['radar', 'scatter']"
+          class="w-full"
+        />
+        <label>Graph Type</label>
+      </span> -->
+
+      <div v-if="graph.reg.type !== 'none'" class="text-center text-xs">
+        <template v-if="!graph.reg.error">
+          <div class="mb-2">r<sup>2</sup> = {{ graph.reg.r2 }}</div>
+          <div v-html="graph.reg.eq" />
+        </template>
+
+        <span v-else class="p-error">error calculating regression</span>
+      </div>
+
+      <div class="mt-3 flex-center gap-2">
+        <span class="p-float-label flex-grow-1">
+          <Dropdown
+            v-model="graph.reg.type"
+            :class="{ 'p-invalid': graph.reg.error }"
+            :options="[
+              'none',
+              'exponential',
+              'linear',
+              'logarithmic',
+              'polynomial',
+              'power'
+            ]"
+            class="w-full"
+          />
+          <label>Regression</label>
+        </span>
+
+        <ColorPicker v-model="graph.reg.color" />
+      </div>
+
+      <span v-if="graph.reg.type === 'polynomial'" class="p-float-label">
+        <Dropdown
+          v-model="graph.reg.order"
+          :options="[2, 3, 4, 5, 6]"
+          class="w-full"
+        />
+        <label>Polynomial Order</label>
+      </span>
+    </div>
+  </OverlayPanel>
 
   <div
     class="tooltip"

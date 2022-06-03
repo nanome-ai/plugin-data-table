@@ -15,12 +15,14 @@ import 'primeicons/primeicons.css'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import Chip from 'primevue/chip'
+import ColorPicker from 'primevue/colorpicker'
 import Divider from 'primevue/divider'
 import Dropdown from 'primevue/dropdown'
 import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
 import Menu from 'primevue/menu'
 import MultiSelect from 'primevue/multiselect'
+import OverlayPanel from 'primevue/overlaypanel'
 import Sidebar from 'primevue/sidebar'
 import Skeleton from 'primevue/skeleton'
 import ToggleButton from 'primevue/togglebutton'
@@ -42,12 +44,14 @@ app.use(pinia)
 app.component('Button', Button)
 app.component('Checkbox', Checkbox)
 app.component('Chip', Chip)
+app.component('ColorPicker', ColorPicker)
 app.component('Divider', Divider)
 app.component('Dropdown', Dropdown)
 app.component('InputNumber', InputNumber)
 app.component('InputText', InputText)
 app.component('Menu', Menu)
 app.component('MultiSelect', MultiSelect)
+app.component('OverlayPanel', OverlayPanel)
 app.component('Sidebar', Sidebar)
 app.component('Skeleton', Skeleton)
 app.component('ToggleButton', ToggleButton)

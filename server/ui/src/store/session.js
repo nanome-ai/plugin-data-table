@@ -78,20 +78,28 @@ const setupEventListeners = (store, ws) => {
   })
 }
 
+const createGraph = () => ({
+  id: randStr(6),
+  xColumn: null,
+  yColumn: null,
+  type: 'scatter',
+  reg: {
+    type: 'none',
+    order: 2,
+    color: '0080ff',
+    error: false,
+    eq: '',
+    r2: 0
+  }
+})
+
 export const useSessionStore = defineStore('session', {
   state: () => ({
     columns: [],
     columnTypes: {},
     complexes: [],
     frames: [],
-    graphs: [
-      {
-        id: randStr(6),
-        xColumn: null,
-        yColumn: null,
-        type: 'scatter'
-      }
-    ],
+    graphs: [createGraph()],
     hiddenFrames: [],
     images: {},
     loading: false,
@@ -146,12 +154,7 @@ export const useSessionStore = defineStore('session', {
 
     // #region graphs
     addGraph() {
-      this.graphs.push({
-        id: randStr(6),
-        xColumn: null,
-        yColumn: null,
-        type: 'scatter'
-      })
+      this.graphs.push(createGraph())
     },
 
     removeGraph(graph) {
