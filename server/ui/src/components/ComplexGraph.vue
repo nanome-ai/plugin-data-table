@@ -24,28 +24,29 @@ const tooltip = reactive({
 })
 
 watchEffect(() => {
-  const data = session.frames.map(item => ({
-    x: +item[graph.value.xColumn],
-    y: +item[graph.value.yColumn]
-  }))
+  const g = graph.value
+
+  const data = session.frames
+    .filter(f => !g.frames.length || g.frames.includes(f.index))
+    .map(item => ({ x: +item[g.xColumn], y: +item[g.yColumn] }))
 
   const datasets = [{ data }]
   chartData.value = { datasets }
 
-  graph.value.reg.error = false
+  g.reg.error = false
 
-  if (graph.value.type === 'scatter' && graph.value.reg.type !== 'none') {
+  if (g.type === 'scatter' && g.reg.type !== 'none') {
     const points = data
       .map(point => [point.x, point.y])
       .sort((a, b) => a[0] - b[0])
-    const r = regression[graph.value.reg.type](points, {
-      order: graph.value.reg.order
+    const r = regression[g.reg.type](points, {
+      order: g.reg.order
     })
 
-    graph.value.reg.error = isNaN(r.r2)
-    graph.value.reg.eq = r.string.replace(/\^([-.\d()x]+)/g, '<sup>$1</sup>')
-    graph.value.reg.r2 = r.r2
-    if (graph.value.reg.error) return
+    g.reg.error = isNaN(r.r2)
+    g.reg.eq = r.string.replace(/\^([-.\d()x]+)/g, '<sup>$1</sup>')
+    g.reg.r2 = r.r2
+    if (g.reg.error) return
 
     const xValues = points.map(point => point[0])
     const minX = Math.min(...xValues)
@@ -70,7 +71,7 @@ watchEffect(() => {
     datasets.push({
       type: 'line',
       data: rData,
-      borderColor: '#' + graph.value.reg.color,
+      borderColor: '#' + g.reg.color,
       pointRadius: 0,
       pointHitRadius: 0,
       pointHoverRadius: 0
@@ -238,7 +239,21 @@ const swapAxes = () => {
   <Divider v-if="!props.fullscreen" />
 
   <OverlayPanel ref="settings">
-    <div class="w-12rem flex flex-column gap-5">
+    <div class="mt-3 w-12rem flex flex-column gap-5">
+      <span class="p-float-label">
+        <MultiSelect
+          v-model="graph.frames"
+          :max-selected-labels="-1"
+          :options="session.frames"
+          :option-label="i => `${i.index} - ${i[session.nameColumn]}`"
+          option-value="index"
+          class="w-full p-inputwrapper-filled"
+          placeholder="all frames"
+          selected-items-label="{0} frames"
+        />
+        <label>Included Frames</label>
+      </span>
+
       <!-- <span class="mt-3 p-float-label">
         <Dropdown
           v-model="graph.type"

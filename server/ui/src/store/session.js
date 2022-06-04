@@ -82,6 +82,7 @@ const createGraph = () => ({
   id: randStr(6),
   xColumn: null,
   yColumn: null,
+  frames: [],
   type: 'scatter',
   reg: {
     type: 'none',
@@ -153,8 +154,12 @@ export const useSessionStore = defineStore('session', {
     // #endregion
 
     // #region graphs
-    addGraph() {
-      this.graphs.push(createGraph())
+    addGraph(selectedOnly) {
+      const graph = createGraph()
+      if (selectedOnly) {
+        graph.frames = this.selectedFrameIndices
+      }
+      this.graphs.push(graph)
     },
 
     removeGraph(graph) {

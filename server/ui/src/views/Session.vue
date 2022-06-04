@@ -186,12 +186,20 @@ session.connect(props.id)
                 :graph="graph"
               />
 
-              <div>
+              <div class="flex-center flex-wrap gap-2">
                 <Button
                   class="p-button-text"
                   label="new graph"
                   icon="pi pi-plus"
-                  @click="session.addGraph"
+                  @click="session.addGraph(false)"
+                />
+
+                <Button
+                  v-if="session.selectedFrames.length"
+                  class="p-button-text"
+                  label="new graph from selection"
+                  icon="pi pi-plus"
+                  @click="session.addGraph(true)"
                 />
               </div>
             </div>
