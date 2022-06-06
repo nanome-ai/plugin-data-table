@@ -32,14 +32,16 @@ class DataTable(nanome.AsyncPluginInstance):
 
         self.url, self.https = self.custom_data
         
-        # If url not resolvable by container, set server_url to data-table-server container name
+        # If 'data-table-server' not available on local docker network,
+        # use external url as server_url
+        priority_server_url = 'data-table-server'
         protocol = 'https' if self.https else 'http'
         try:
-            urllib.request.urlopen(f'{protocol}://{self.url}')
+            urllib.request.urlopen(f'{protocol}://{priority_server_url}')
         except urllib.error.URLError:
-            self.server_url = 'data-table-server'
+            self.server_url = self.url
         else:
-            self.server_url = self.url        
+            self.server_url = priority_server_url
 
         self.session = ''.join(random.choices(string.ascii_lowercase, k=4))
 
