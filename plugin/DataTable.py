@@ -14,6 +14,7 @@ import os
 import random
 import string
 import tempfile
+import urllib
 import websockets
 
 # mol 2d image drawing options
@@ -21,16 +22,27 @@ Draw.DrawingOptions.atomLabelFontSize = 40
 Draw.DrawingOptions.dotsPerAngstrom = 100
 Draw.DrawingOptions.bondLineWidth = 8
 
-IS_DOCKER = os.path.exists('/.dockerenv')
 
 class DataTable(nanome.AsyncPluginInstance):
+
     @async_callback
     async def start(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.temp_sdf = tempfile.NamedTemporaryFile(delete=False, suffix='.sdf', dir=self.temp_dir.name)
 
         self.url, self.https = self.custom_data
-        self.server_url = 'data-table-server' if IS_DOCKER else self.url
+        
+        # If 'data-table-server' not available on local docker network,
+        # use external url as server_url
+        priority_server_host = 'data-table-server'
+        protocol = 'https' if self.https else 'http'
+        try:
+            urllib.request.urlopen(f'{protocol}://{priority_server_host}')
+        except urllib.error.URLError:
+            self.server_url = self.url
+        else:
+            self.server_url = priority_server_host
+
         self.session = ''.join(random.choices(string.ascii_lowercase, k=4))
 
         self.selected_complex = None
@@ -279,13 +291,16 @@ class DataTable(nanome.AsyncPluginInstance):
 def main():
     parser = argparse.ArgumentParser(description='Parse arguments for Data Table plugin')
     parser.add_argument('--https', dest='https', action='store_true', help='Enable HTTPS on the Data Table Web UI')
-    parser.add_argument('-u', '--url', dest='url', type=str, help='URL of the web server', required=True)
+    parser.add_argument('-u', '--url', dest='url', type=str, help='URL of the web server')
     parser.add_argument('-w', '--web-port', dest='web_port', type=int, help='Custom port for connecting to Data Table Web UI.')
     args, _ = parser.parse_known_args()
 
-    https = args.https
-    port = args.web_port
-    url = args.url
+    https = args.https or os.environ.get('SERVER_HTTPS', False)
+    port = args.web_port or os.environ.get('SERVER_PORT', None)
+    url = args.url or os.environ.get('SERVER_URL', '')
+
+    if not url:
+        raise Exception('--url flag or SERVER_URL environment variable must be set')
 
     if port:
         url = f'{url}:{port}'
