@@ -5,7 +5,6 @@ from nanome.util import async_callback, Logs
 from cairosvg import svg2png
 from rdkit import Chem
 from rdkit.Chem import AllChem, Draw
-
 import argparse
 import asyncio
 import base64
@@ -14,6 +13,7 @@ import os
 import random
 import string
 import tempfile
+import urllib
 import websockets
 
 # mol 2d image drawing options
@@ -29,7 +29,17 @@ class DataTable(nanome.AsyncPluginInstance):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.temp_sdf = tempfile.NamedTemporaryFile(delete=False, suffix='.sdf', dir=self.temp_dir.name)
 
-        self.server_url, self.https = self.custom_data
+        self.url, self.https = self.custom_data
+        
+        # If provided url not accessible by container, set server_url to default name for server container name
+        try:
+            protocol = 'https' if self.https else 'http'
+            urllib.request.urlopen(f'{protocol}://{self.url}')
+        except urllib.error.URLError:
+            self.server_url = 'data-table-server'
+        else:
+            self.server_url = self.url        
+
         self.session = ''.join(random.choices(string.ascii_lowercase, k=4))
 
         self.selected_complex = None
@@ -94,7 +104,7 @@ class DataTable(nanome.AsyncPluginInstance):
 
     def on_run(self):
         protocol = 'https' if self.https else 'http'
-        self.open_url(f'{protocol}://{self.server_url}/{self.session}')
+        self.open_url(f'{protocol}://{self.url}/{self.session}')
 
     @async_callback
     async def on_stop(self):
@@ -278,15 +288,15 @@ class DataTable(nanome.AsyncPluginInstance):
 def main():
     parser = argparse.ArgumentParser(description='Parse arguments for Data Table plugin')
     parser.add_argument('--https', dest='https', action='store_true', help='Enable HTTPS on the Data Table Web UI')
-    parser.add_argument('-u', '--url', dest='url', type=str, help='URL of the web server')
-    parser.add_argument('-w', '--web-port', dest='web_port', type=int, help='Custom port for connecting to Data Table Web UI.')
+    parser.add_argument('-u', '--url', dest='url', type=str, help='URL of the web server', default=os.environ.get('SERVER_URL', ''), required=True)
+    parser.add_argument('-w', '--web-port', dest='web_port', type=int, help='Custom port for connecting to Data Table Web UI.', default=os.environ.get('SERVER_PORT', 0))
     args, _ = parser.parse_known_args()
 
     https = args.https
     port = args.web_port
 
     # defaults to Docker container name if arg or env var is not set
-    server_url = args.url or os.environ.get('SERVER_URL', None ) or 'data-table-server'
+    server_url = args.url
 
     if port:
         server_url = f'{server_url}:{port}'
