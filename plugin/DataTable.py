@@ -293,13 +293,12 @@ def main():
     parser.add_argument('-w', '--web-port', dest='web_port', type=int, help='Custom port for connecting to Data Table Web UI.')
     args, _ = parser.parse_known_args()
 
-    https = args.https
+    https = args.https or os.environ.get('SERVER_HTTPS', False)
     port = args.web_port or os.environ.get('SERVER_PORT', None)
-
     url = args.url or os.environ.get('SERVER_URL', '')
+
     if not url:
         raise Exception('--url flag or SERVER_URL environment variable must be set')
-    
 
     if port:
         url = f'{url}:{port}'
