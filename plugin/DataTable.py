@@ -5,6 +5,7 @@ from nanome.util import async_callback, Logs
 from cairosvg import svg2png
 from rdkit import Chem
 from rdkit.Chem import AllChem, Draw
+
 import argparse
 import asyncio
 import base64
@@ -295,17 +296,17 @@ def main():
     https = args.https
     port = args.web_port or os.environ.get('SERVER_PORT', None)
 
-    server_url = args.url or os.environ.get('SERVER_URL', '')
-    if not server_url:
+    url = args.url or os.environ.get('SERVER_URL', '')
+    if not url:
         raise Exception('--url flag or SERVER_URL environment variable must be set')
     
 
     if port:
-        server_url = f'{server_url}:{port}'
+        url = f'{url}:{port}'
 
     plugin = nanome.Plugin('Data Table', 'A Nanome plugin to view multi-frame structure metadata in a table', 'Analysis', False)
     plugin.set_plugin_class(DataTable)
-    plugin.set_custom_data(server_url, https)
+    plugin.set_custom_data(url, https)
     plugin.run()
 
 
