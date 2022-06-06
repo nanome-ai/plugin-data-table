@@ -82,6 +82,7 @@ const createGraph = () => ({
   id: randStr(6),
   xColumn: null,
   yColumn: null,
+  rColumns: [],
   frames: [],
   type: 'scatter',
   reg: {

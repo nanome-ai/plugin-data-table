@@ -1,7 +1,7 @@
 <script setup>
 import { computed, reactive, ref, toRef, watch, watchEffect } from 'vue'
-import regression from 'regression'
 import { useSessionStore } from '../store/session'
+import { useRadarData, useScatterData } from '../helpers/graphs'
 
 import Chart from 'primevue/chart'
 
@@ -15,68 +15,17 @@ const graph = toRef(props, 'graph')
 
 const chart = ref(null)
 const settings = ref(null)
-const chartData = ref([])
+
+const radarData = useRadarData(session, graph)
+const scatterData = useScatterData(session, graph)
+const chartData = computed(() => {
+  return graph.value.type === 'radar' ? radarData.value : scatterData.value
+})
 
 const tooltip = reactive({
   x: null,
   y: null,
   items: []
-})
-
-watchEffect(() => {
-  const g = graph.value
-
-  const data = session.frames
-    .filter(f => !g.frames.length || g.frames.includes(f.index))
-    .map(item => ({ x: +item[g.xColumn], y: +item[g.yColumn] }))
-
-  const datasets = [{ data }]
-  chartData.value = { datasets }
-
-  g.reg.error = false
-
-  if (g.type === 'scatter' && g.reg.type !== 'none') {
-    const points = data
-      .map(point => [point.x, point.y])
-      .sort((a, b) => a[0] - b[0])
-    const r = regression[g.reg.type](points, {
-      order: g.reg.order
-    })
-
-    g.reg.error = isNaN(r.r2)
-    g.reg.eq = r.string.replace(/\^([-.\d()x]+)/g, '<sup>$1</sup>')
-    g.reg.r2 = r.r2
-    if (g.reg.error) return
-
-    const xValues = points.map(point => point[0])
-    const minX = Math.min(...xValues)
-    const maxX = Math.max(...xValues)
-    const step = (maxX - minX) / 300
-
-    const rData = Array.from({ length: 300 }, (_, i) => ({
-      x: minX + i * step,
-      y: r.predict(minX + i * step)[1]
-    }))
-
-    const yValues = points.map(point => point[1])
-    const minY = Math.min(...yValues)
-    const maxY = Math.max(...yValues)
-    const yPad = (maxY - minY) / 10
-
-    // hide regression that goes out of bounds
-    for (const p of rData) {
-      if (p.y < minY - yPad || p.y > maxY + yPad) p.y = null
-    }
-
-    datasets.push({
-      type: 'line',
-      data: rData,
-      borderColor: '#' + g.reg.color,
-      pointRadius: 0,
-      pointHitRadius: 0,
-      pointHoverRadius: 0
-    })
-  }
 })
 
 const fontMultiplier = computed(() => (props.fullscreen ? 1.2 : 1))
@@ -121,19 +70,28 @@ const chartOptions = computed(() => ({
   plugins: {
     legend: { display: false },
     title: {
-      display: true,
+      display: graph.value.type === 'scatter',
       font: { size: 16 * fontMultiplier.value, weight: 'normal' },
       text: `${graph.value.yColumn} vs ${graph.value.xColumn}`
     },
     tooltip: {
       enabled: false,
       position: 'nearest',
-      filter: item => item.datasetIndex === 0,
+      filter: item => {
+        return graph.value.type === 'scatter' ? item.datasetIndex === 0 : true
+      },
       external: tooltipHandler
     }
   },
   scales: {
+    r: {
+      display: graph.value.type === 'radar',
+      ticks: { display: false },
+      suggestedMin: -0.2,
+      suggestedMax: 1
+    },
     x: {
+      display: graph.value.type === 'scatter',
       ticks: { font: { size: 14 * fontMultiplier.value } },
       title: {
         display: true,
@@ -142,6 +100,7 @@ const chartOptions = computed(() => ({
       }
     },
     y: {
+      display: graph.value.type === 'scatter',
       ticks: { font: { size: 14 * fontMultiplier.value } },
       title: {
         display: true,
@@ -175,8 +134,9 @@ const swapAxes = () => {
 <template>
   <div class="mb-5">
     <Chart
-      v-if="graph.xColumn && graph.yColumn"
+      v-if="chartData"
       ref="chart"
+      :key="graph.type"
       :data="chartData"
       :options="chartOptions"
       :type="graph.type"
@@ -187,30 +147,60 @@ const swapAxes = () => {
   </div>
 
   <div class="mb-2 flex justify-content-center gap-2">
-    <span class="p-float-label">
-      <Dropdown
-        v-model="graph.yColumn"
-        :options="session.numericColumns"
-        class="w-8rem"
-      />
-      <label>Y Axis</label>
-    </span>
+    <template v-if="graph.type === 'scatter'">
+      <span class="p-float-label">
+        <Dropdown
+          v-model="graph.yColumn"
+          :options="session.numericColumns"
+          class="w-8rem"
+        />
+        <label>Y Axis</label>
+      </span>
 
-    <Button
-      v-tooltip.bottom="'swap axes'"
-      class="p-button-secondary p-button-text rotate-90"
-      icon="pi pi-sort-alt"
-      @click="swapAxes"
-    />
-
-    <span class="p-float-label">
-      <Dropdown
-        v-model="graph.xColumn"
-        :options="session.numericColumns"
-        class="w-8rem"
+      <Button
+        v-tooltip.bottom="'swap axes'"
+        class="p-button-secondary p-button-text rotate-90"
+        icon="pi pi-sort-alt"
+        @click="swapAxes"
       />
-      <label>X Axis</label>
-    </span>
+
+      <span class="p-float-label">
+        <Dropdown
+          v-model="graph.xColumn"
+          :options="session.numericColumns"
+          class="w-8rem"
+        />
+        <label>X Axis</label>
+      </span>
+    </template>
+
+    <template v-else-if="graph.type === 'radar'">
+      <span class="p-float-label">
+        <MultiSelect
+          v-model="graph.rColumns"
+          :options="session.numericColumns"
+          :max-selected-labels="0.1"
+          placeholder="select columns"
+          selected-items-label="{0} columns"
+          class="w-8rem p-inputwrapper-filled"
+        />
+        <label>Axes</label>
+      </span>
+
+      <span class="p-float-label">
+        <MultiSelect
+          v-model="graph.frames"
+          :max-selected-labels="-1"
+          :options="session.frames"
+          :option-label="f => `${f.index} - ${f[session.nameColumn]}`"
+          option-value="index"
+          class="w-full p-inputwrapper-filled"
+          placeholder="all frames"
+          selected-items-label="{0} frames"
+        />
+        <label>Frames</label>
+      </span>
+    </template>
 
     <Button
       v-tooltip.bottom="'settings'"
@@ -239,13 +229,22 @@ const swapAxes = () => {
   <Divider v-if="!props.fullscreen" />
 
   <OverlayPanel ref="settings">
-    <div class="mt-3 w-12rem flex flex-column gap-5">
-      <span class="p-float-label">
+    <div class="w-12rem flex flex-column gap-5">
+      <span class="mt-3 p-float-label">
+        <Dropdown
+          v-model="graph.type"
+          :options="['radar', 'scatter']"
+          class="w-full"
+        />
+        <label>Graph Type</label>
+      </span>
+
+      <span v-if="graph.type === 'scatter'" class="mt-3 p-float-label">
         <MultiSelect
           v-model="graph.frames"
           :max-selected-labels="-1"
           :options="session.frames"
-          :option-label="i => `${i.index} - ${i[session.nameColumn]}`"
+          :option-label="f => `${f.index} - ${f[session.nameColumn]}`"
           option-value="index"
           class="w-full p-inputwrapper-filled"
           placeholder="all frames"
@@ -254,53 +253,46 @@ const swapAxes = () => {
         <label>Included Frames</label>
       </span>
 
-      <!-- <span class="mt-3 p-float-label">
-        <Dropdown
-          v-model="graph.type"
-          :options="['radar', 'scatter']"
-          class="w-full"
-        />
-        <label>Graph Type</label>
-      </span> -->
+      <template v-if="graph.type === 'scatter'">
+        <div v-if="graph.reg.type !== 'none'" class="text-center text-xs">
+          <template v-if="!graph.reg.error">
+            <div class="mb-2">r<sup>2</sup> = {{ graph.reg.r2 }}</div>
+            <div v-html="graph.reg.eq" />
+          </template>
 
-      <div v-if="graph.reg.type !== 'none'" class="text-center text-xs">
-        <template v-if="!graph.reg.error">
-          <div class="mb-2">r<sup>2</sup> = {{ graph.reg.r2 }}</div>
-          <div v-html="graph.reg.eq" />
-        </template>
+          <span v-else class="p-error">error calculating regression</span>
+        </div>
 
-        <span v-else class="p-error">error calculating regression</span>
-      </div>
+        <div class="mt-3 flex-center gap-2">
+          <span class="p-float-label flex-grow-1">
+            <Dropdown
+              v-model="graph.reg.type"
+              :class="{ 'p-invalid': graph.reg.error }"
+              :options="[
+                'none',
+                'exponential',
+                'linear',
+                'logarithmic',
+                'polynomial',
+                'power'
+              ]"
+              class="w-full"
+            />
+            <label>Regression</label>
+          </span>
 
-      <div class="mt-3 flex-center gap-2">
-        <span class="p-float-label flex-grow-1">
+          <ColorPicker v-model="graph.reg.color" />
+        </div>
+
+        <span v-if="graph.reg.type === 'polynomial'" class="p-float-label">
           <Dropdown
-            v-model="graph.reg.type"
-            :class="{ 'p-invalid': graph.reg.error }"
-            :options="[
-              'none',
-              'exponential',
-              'linear',
-              'logarithmic',
-              'polynomial',
-              'power'
-            ]"
+            v-model="graph.reg.order"
+            :options="[2, 3, 4, 5, 6]"
             class="w-full"
           />
-          <label>Regression</label>
+          <label>Polynomial Order</label>
         </span>
-
-        <ColorPicker v-model="graph.reg.color" />
-      </div>
-
-      <span v-if="graph.reg.type === 'polynomial'" class="p-float-label">
-        <Dropdown
-          v-model="graph.reg.order"
-          :options="[2, 3, 4, 5, 6]"
-          class="w-full"
-        />
-        <label>Polynomial Order</label>
-      </span>
+      </template>
     </div>
   </OverlayPanel>
 
