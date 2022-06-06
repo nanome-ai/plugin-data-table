@@ -31,9 +31,9 @@ class DataTable(nanome.AsyncPluginInstance):
 
         self.url, self.https = self.custom_data
         
-        # If provided url not accessible by container, set server_url to default name for server container name
+        # If url not resolvable by container, set server_url to data-table-server container name
+        protocol = 'https' if self.https else 'http'
         try:
-            protocol = 'https' if self.https else 'http'
             urllib.request.urlopen(f'{protocol}://{self.url}')
         except urllib.error.URLError:
             self.server_url = 'data-table-server'
