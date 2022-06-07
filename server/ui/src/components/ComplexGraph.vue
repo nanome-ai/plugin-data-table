@@ -25,9 +25,13 @@ const chartData = computed(() => {
 })
 
 const tooltip = reactive({
+  label: null,
   x: null,
   y: null,
-  items: []
+  items: [],
+  start: null,
+  total: null,
+  nextSelection: null
 })
 
 const fontMultiplier = computed(() => (props.fullscreen ? 1.2 : 1))
@@ -42,9 +46,29 @@ const tooltipHandler = ctx => {
   const rect = ctx.chart.canvas.getBoundingClientRect()
   tooltip.x = Math.min(rect.left + ctx.tooltip.caretX, window.innerWidth - 90)
   tooltip.y = rect.top + ctx.tooltip.caretY + 5 * radiusMultiplier.value
-  tooltip.items = ctx.tooltip.dataPoints.map(d => {
+
+  const total = ctx.tooltip.dataPoints.length
+  const selectedIndex = ctx.tooltip.dataPoints.findIndex(d => {
+    return d.raw.index === session.selectedFrame.index
+  })
+
+  if (total > 0) {
+    if (isRadar.value) {
+      tooltip.label = ctx.tooltip.dataPoints[0].label
+    }
+
+    const nextIndex = (selectedIndex + 1) % total
+    tooltip.nextSelection = ctx.tooltip.dataPoints[nextIndex].raw.index
+  }
+
+  const start = Math.floor((selectedIndex === -1 ? 0 : selectedIndex) / 3)
+  let items = ctx.tooltip.dataPoints.slice(start * 3, start * 3 + 3).map(d => {
     return session.frames.find(f => f.index === d.raw.index)
   })
+
+  tooltip.items = items
+  tooltip.start = start
+  tooltip.total = total
 }
 
 const isSelected = ctx => {
@@ -57,7 +81,7 @@ const chartOptions = computed(() => ({
   elements: {
     line: {
       borderColor: ctx => {
-        return isSelected(ctx) ? '#fff' : '#fff3'
+        return isSelected(ctx) ? '#fff' : '#fff2'
       },
       borderJoinStyle: 'round',
       borderWidth: () => 4 * radiusMultiplier.value,
@@ -134,11 +158,9 @@ watch(
   { deep: true }
 )
 
-const onClick = () => {
+const cycleSelection = () => {
   if (!tooltip.items.length) return
-  let index = tooltip.items.indexOf(session.selectedFrame)
-  index = index === -1 ? 0 : (index + 1) % tooltip.items.length
-  session.selectFrame(tooltip.items[index].index)
+  session.selectFrame(tooltip.nextSelection)
 }
 
 const swapAxes = () => {
@@ -161,7 +183,7 @@ const roundValue = value => {
       :data="chartData"
       :options="chartOptions"
       :type="graph.type"
-      @click="onClick"
+      @click="cycleSelection"
     />
 
     <Skeleton
@@ -344,7 +366,11 @@ const roundValue = value => {
       </template>
 
       <template v-else-if="isRadar">
-        <div v-for="col in graph.rColumns" class="flex justify-content-between">
+        <div
+          v-for="col in graph.rColumns"
+          :class="{ 'font-bold': col === tooltip.label }"
+          class="flex justify-content-between"
+        >
           <div>{{ col }}:</div>
           <div>{{ roundValue(tooltip.items[0][col]) }}</div>
         </div>
@@ -352,7 +378,7 @@ const roundValue = value => {
     </div>
 
     <div
-      v-for="item in tooltip.items.slice(0, 3)"
+      v-for="item in tooltip.items"
       :key="item.index"
       :style="{
         background: session.selectedFrame === item ? '#fff2' : '#0000'
@@ -372,9 +398,7 @@ const roundValue = value => {
       </div>
     </div>
 
-    <div v-if="tooltip.items.length > 3">
-      ... {{ tooltip.items.length - 3 }} more
-    </div>
+    <div v-if="tooltip.total > 3">{{ tooltip.total }} frames</div>
   </div>
 </template>
 
