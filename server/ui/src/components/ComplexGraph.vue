@@ -38,7 +38,7 @@ const tooltipHandler = ctx => {
   }
 
   const rect = ctx.chart.canvas.getBoundingClientRect()
-  tooltip.x = rect.left + ctx.tooltip.caretX
+  tooltip.x = Math.min(rect.left + ctx.tooltip.caretX, window.innerWidth - 90)
   tooltip.y = rect.top + ctx.tooltip.caretY + 5 * radiusMultiplier.value
   tooltip.items = ctx.tooltip.dataPoints.map(d => {
     return session.frames.find(f => f.index === d.raw.index)
@@ -131,6 +131,10 @@ const swapAxes = () => {
   const x = graph.value.xColumn
   graph.value.xColumn = graph.value.yColumn
   graph.value.yColumn = x
+}
+
+const roundValue = value => {
+  return Math.round(value * 100) / 100
 }
 </script>
 
@@ -308,9 +312,25 @@ const swapAxes = () => {
     }"
   >
     <div v-if="tooltip.items.length" class="p-2">
-      <div>{{ graph.xColumn }}: {{ tooltip.items[0][graph.xColumn] }}</div>
-      <div>{{ graph.yColumn }}: {{ tooltip.items[0][graph.yColumn] }}</div>
+      <template v-if="graph.type === 'scatter'">
+        <div class="flex justify-content-between">
+          <div>{{ graph.xColumn }}:</div>
+          <div>{{ roundValue(tooltip.items[0][graph.xColumn]) }}</div>
+        </div>
+        <div class="flex justify-content-between">
+          <div>{{ graph.yColumn }}:</div>
+          <div>{{ roundValue(tooltip.items[0][graph.yColumn]) }}</div>
+        </div>
+      </template>
+
+      <template v-else-if="graph.type === 'radar'">
+        <div v-for="col in graph.rColumns" class="flex justify-content-between">
+          <div>{{ col }}:</div>
+          <div>{{ roundValue(tooltip.items[0][col]) }}</div>
+        </div>
+      </template>
     </div>
+
     <div
       v-for="item in tooltip.items.slice(0, 3)"
       :key="item.index"
@@ -319,8 +339,17 @@ const swapAxes = () => {
       }"
       class="p-2 text-center"
     >
-      <img :src="session.getImage(item.index)" class="h-4rem" />
-      <div>{{ item.index + 1 }} - {{ item[session.nameColumn] }}</div>
+      <img
+        v-if="session.getImage(item.index)"
+        :src="session.getImage(item.index)"
+        class="h-4rem"
+      />
+      <div v-else class="h-4rem inline-flex align-items-center">
+        <i class="pi pi-exclamation-triangle text-500 text-5xl" />
+      </div>
+      <div class="text-xs">
+        {{ item.index + 1 }} - {{ item[session.nameColumn] }}
+      </div>
     </div>
 
     <div v-if="tooltip.items.length > 3">
@@ -332,6 +361,7 @@ const swapAxes = () => {
 <style scoped>
 .tooltip {
   position: absolute;
+  width: 160px;
   color: #fff;
   background-color: #0008;
   border: 1px solid #4448;
