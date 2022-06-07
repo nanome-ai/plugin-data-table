@@ -163,6 +163,17 @@ const cycleSelection = () => {
   session.selectFrame(tooltip.nextSelection)
 }
 
+const syncSelectionWithTable = to => {
+  if (to) {
+    const indices = graph.value.frames
+    session.selectedFrames = indices.map(i => session.frames[i])
+  } else {
+    const indices = session.selectedFrames.map(f => session.frames.indexOf(f))
+    graph.value.frames = indices
+  }
+  session.selectionMode = true
+}
+
 const swapAxes = () => {
   const x = graph.value.xColumn
   graph.value.xColumn = graph.value.yColumn
@@ -342,6 +353,24 @@ const roundValue = value => {
           <label>Polynomial Order</label>
         </span>
       </template>
+
+      <span class="w-full p-float-label">
+        <div class="flex p-buttonset p-inputwrapper-filled">
+          <Button
+            :label="`${graph.frames.length}`"
+            class="w-full p-button-secondary p-button-outlined"
+            icon="pi pi-arrow-left"
+            @click="syncSelectionWithTable(true)"
+          />
+          <Button
+            :label="`${session.selectedFrames.length}`"
+            class="w-full p-button-secondary p-button-outlined"
+            icon="pi pi-arrow-right"
+            @click="syncSelectionWithTable(false)"
+          />
+        </div>
+        <label>Sync selection with table</label>
+      </span>
     </div>
   </OverlayPanel>
 

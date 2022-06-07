@@ -16,7 +16,6 @@ const session = useSessionStore()
 const confirm = useConfirm()
 
 const settings = ref(null)
-const selectionMode = ref(false)
 const reorderMode = ref(false)
 const showGraphs = ref(false)
 
@@ -47,7 +46,7 @@ const showFullscreenGraph = computed({
 // }
 
 const toggleSelectionMode = () => {
-  selectionMode.value = !selectionMode.value
+  session.selectionMode = !session.selectionMode
   session.selectedFrames = []
 }
 
@@ -168,7 +167,7 @@ session.connect(props.id)
 
             <ComplexTable
               class="flex-grow-1"
-              :multi-select="selectionMode"
+              :multi-select="session.selectionMode"
               :reorderable="reorderMode"
             />
           </div>
@@ -207,7 +206,7 @@ session.connect(props.id)
         </div>
 
         <div class="pt-4">
-          <template v-if="selectionMode">
+          <template v-if="session.selectionMode">
             <Button
               :disabled="!session.selectedFrames.length"
               class="mx-2 p-button-danger"
@@ -287,11 +286,11 @@ session.connect(props.id)
             class="mx-2 p-button-outlined"
             @click="toggleSelectionMode"
           >
-            {{ selectionMode ? 'Cancel' : 'Selection Mode' }}
+            {{ session.selectionMode ? 'Cancel' : 'Selection Mode' }}
           </Button>
 
           <!-- <Button
-            v-if="!selectionMode"
+            v-if="!session.selectionMode"
             class="mx-2 p-button-outlined"
             @click="toggleReorderMode"
           >

@@ -64,7 +64,7 @@ const setupEventListeners = (store, ws) => {
   })
 
   ws.on(EVENT.SELECT_FRAME, index => {
-    store.selectedFrame = store.frames.find(f => f.index === index)
+    store.selectFrame(index, false)
   })
 
   ws.on(EVENT.ERROR, error => {
@@ -111,6 +111,7 @@ export const useSessionStore = defineStore('session', {
     selectedFrame: null,
     selectedFrames: [],
     selectedGraph: null,
+    selectionMode: false,
     status: STATUS.OFFLINE,
     ws: null
   }),
@@ -193,9 +194,9 @@ export const useSessionStore = defineStore('session', {
       this.ws.send(EVENT.SELECT_COMPLEX, index)
     },
 
-    selectFrame(index) {
+    selectFrame(index, send = true) {
       this.selectedFrame = this.frames.find(f => f.index === index)
-      this.ws.send(EVENT.SELECT_FRAME, index)
+      if (send) this.ws.send(EVENT.SELECT_FRAME, index)
     },
 
     splitSelection(single, remove) {
