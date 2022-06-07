@@ -12,6 +12,8 @@ const props = defineProps({
 
 const session = useSessionStore()
 const graph = toRef(props, 'graph')
+const isRadar = computed(() => graph.value.type === 'radar')
+const isScatter = computed(() => graph.value.type === 'scatter')
 
 const chart = ref(null)
 const settings = ref(null)
@@ -19,7 +21,7 @@ const settings = ref(null)
 const radarData = useRadarData(session, graph)
 const scatterData = useScatterData(session, graph)
 const chartData = computed(() => {
-  return graph.value.type === 'radar' ? radarData.value : scatterData.value
+  return isRadar.value ? radarData.value : scatterData.value
 })
 
 const tooltip = reactive({
@@ -82,7 +84,7 @@ const chartOptions = computed(() => ({
   plugins: {
     legend: { display: false },
     title: {
-      display: graph.value.type === 'scatter',
+      display: isScatter.value,
       font: { size: 16 * fontMultiplier.value, weight: 'normal' },
       text: `${graph.value.yColumn} vs ${graph.value.xColumn}`
     },
@@ -90,14 +92,14 @@ const chartOptions = computed(() => ({
       enabled: false,
       position: 'nearest',
       filter: item => {
-        return graph.value.type === 'scatter' ? item.datasetIndex === 0 : true
+        return isScatter.value ? item.datasetIndex === 0 : true
       },
       external: tooltipHandler
     }
   },
   scales: {
     r: {
-      display: graph.value.type === 'radar',
+      display: isRadar.value,
       min: -0.2,
       max: 1,
       pointLabels: {
@@ -106,7 +108,7 @@ const chartOptions = computed(() => ({
       ticks: { display: false }
     },
     x: {
-      display: graph.value.type === 'scatter',
+      display: isScatter.value,
       ticks: { font: { size: 14 * fontMultiplier.value } },
       title: {
         display: true,
@@ -115,7 +117,7 @@ const chartOptions = computed(() => ({
       }
     },
     y: {
-      display: graph.value.type === 'scatter',
+      display: isScatter.value,
       ticks: { font: { size: 14 * fontMultiplier.value } },
       title: {
         display: true,
@@ -164,14 +166,14 @@ const roundValue = value => {
 
     <Skeleton
       v-else
-      :style="{ 'aspect-ratio': graph.type === 'scatter' ? '2/1' : '1/1' }"
+      :style="{ 'aspect-ratio': isScatter ? '2/1' : '1/1' }"
       animation="none"
       height="auto"
     />
   </div>
 
   <div class="mb-2 flex justify-content-center gap-2">
-    <template v-if="graph.type === 'scatter'">
+    <template v-if="isScatter">
       <span class="p-float-label">
         <Dropdown
           v-model="graph.yColumn"
@@ -198,7 +200,7 @@ const roundValue = value => {
       </span>
     </template>
 
-    <template v-else-if="graph.type === 'radar'">
+    <template v-else-if="isRadar">
       <span class="p-float-label">
         <MultiSelect
           v-model="graph.rColumns"
@@ -264,7 +266,7 @@ const roundValue = value => {
         <label>Graph Type</label>
       </span>
 
-      <template v-if="graph.type === 'scatter'">
+      <template v-if="isScatter">
         <span class="p-float-label">
           <MultiSelect
             v-model="graph.frames"
@@ -330,7 +332,7 @@ const roundValue = value => {
     }"
   >
     <div v-if="tooltip.items.length" class="p-2">
-      <template v-if="graph.type === 'scatter'">
+      <template v-if="isScatter">
         <div class="flex justify-content-between">
           <div>{{ graph.xColumn }}:</div>
           <div>{{ roundValue(tooltip.items[0][graph.xColumn]) }}</div>
@@ -341,7 +343,7 @@ const roundValue = value => {
         </div>
       </template>
 
-      <template v-else-if="graph.type === 'radar'">
+      <template v-else-if="isRadar">
         <div v-for="col in graph.rColumns" class="flex justify-content-between">
           <div>{{ col }}:</div>
           <div>{{ roundValue(tooltip.items[0][col]) }}</div>
