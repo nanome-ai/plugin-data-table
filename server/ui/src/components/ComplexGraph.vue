@@ -186,107 +186,135 @@ const roundValue = value => {
 </script>
 
 <template>
-  <div class="mb-5">
-    <Chart
-      v-if="chartData"
-      ref="chart"
-      :key="graph.type"
-      :data="chartData"
-      :options="chartOptions"
-      :type="graph.type"
-      @click="cycleSelection"
-    />
+  <div
+    :class="fullscreen ? 'align-items-center' : 'flex-column'"
+    class="flex gap-5"
+  >
+    <div class="flex-grow-1">
+      <Chart
+        v-if="chartData"
+        ref="chart"
+        :key="graph.type"
+        :data="chartData"
+        :options="chartOptions"
+        :type="graph.type"
+        @click="cycleSelection"
+      />
 
-    <Skeleton
-      v-else
-      :style="{ 'aspect-ratio': isScatter ? '2/1' : '1/1' }"
-      animation="none"
-      height="auto"
-    />
+      <Skeleton
+        v-else
+        :style="{ 'aspect-ratio': isScatter ? '2/1' : '1/1' }"
+        animation="none"
+        height="auto"
+      />
+    </div>
+
+    <!-- controls -->
+    <div
+      :class="{ 'w-20rem flex-column mt-4': fullscreen }"
+      class="mb-2 flex gap-1"
+    >
+      <template v-if="isScatter">
+        <span
+          :class="fullscreen ? 'mt-4' : 'flex-grow-1'"
+          class="p-float-label"
+        >
+          <Dropdown
+            v-model="graph.yColumn"
+            :options="session.numericColumns"
+            class="w-full"
+          />
+          <label>Y Axis</label>
+        </span>
+
+        <div
+          v-if="fullscreen || graph.xColumn || graph.yColumn"
+          class="text-center"
+        >
+          <Button
+            v-tooltip.bottom="'swap axes'"
+            :class="{ 'rotate-90': !fullscreen }"
+            class="p-button-secondary p-button-text"
+            icon="pi pi-sort-alt"
+            @click="swapAxes"
+          />
+        </div>
+
+        <span :class="fullscreen ? '' : 'flex-grow-1'" class="p-float-label">
+          <Dropdown
+            v-model="graph.xColumn"
+            :options="session.numericColumns"
+            class="w-full"
+          />
+          <label>X Axis</label>
+        </span>
+      </template>
+
+      <template v-else-if="isRadar">
+        <span
+          :class="fullscreen ? 'mt-4' : 'flex-grow-1'"
+          class="p-float-label"
+        >
+          <MultiSelect
+            v-model="graph.rColumns"
+            :options="session.numericColumns"
+            :max-selected-labels="0.1"
+            placeholder="select columns"
+            selected-items-label="{0} columns"
+            class="w-full p-inputwrapper-filled"
+          />
+          <label>Axes</label>
+        </span>
+
+        <span
+          :class="fullscreen ? 'mt-4' : 'flex-grow-1'"
+          class="p-float-label"
+        >
+          <MultiSelect
+            v-model="graph.frames"
+            :max-selected-labels="-1"
+            :options="session.frames"
+            :option-label="f => `${f.index + 1} - ${f[session.nameColumn]}`"
+            option-value="index"
+            class="w-full p-inputwrapper-filled"
+            placeholder="all frames"
+            selected-items-label="{0} frames"
+          />
+          <label>Frames</label>
+        </span>
+      </template>
+
+      <div class="flex flex-grow-0">
+        <Button
+          v-tooltip.bottom="'settings'"
+          :label="fullscreen ? 'settings' : ''"
+          class="mx-auto p-button-secondary p-button-text"
+          icon="pi pi-cog"
+          @click="e => settings.toggle(e)"
+        />
+
+        <template v-if="!fullscreen">
+          <Button
+            v-tooltip.bottom="'fullscreen'"
+            class="p-button-secondary p-button-text"
+            icon="pi pi-window-maximize"
+            @click="session.selectGraph(graph)"
+          />
+
+          <Button
+            v-tooltip.bottom="'remove graph'"
+            class="p-button-danger p-button-text"
+            icon="pi pi-trash"
+            @click="session.removeGraph(graph)"
+          />
+        </template>
+      </div>
+    </div>
   </div>
 
-  <div class="mb-2 flex justify-content-center gap-2">
-    <template v-if="isScatter">
-      <span class="p-float-label">
-        <Dropdown
-          v-model="graph.yColumn"
-          :options="session.numericColumns"
-          class="w-8rem"
-        />
-        <label>Y Axis</label>
-      </span>
+  <Divider v-if="!fullscreen" />
 
-      <Button
-        v-tooltip.bottom="'swap axes'"
-        class="p-button-secondary p-button-text rotate-90"
-        icon="pi pi-sort-alt"
-        @click="swapAxes"
-      />
-
-      <span class="p-float-label">
-        <Dropdown
-          v-model="graph.xColumn"
-          :options="session.numericColumns"
-          class="w-8rem"
-        />
-        <label>X Axis</label>
-      </span>
-    </template>
-
-    <template v-else-if="isRadar">
-      <span class="p-float-label">
-        <MultiSelect
-          v-model="graph.rColumns"
-          :options="session.numericColumns"
-          :max-selected-labels="0.1"
-          placeholder="select columns"
-          selected-items-label="{0} columns"
-          class="w-8rem p-inputwrapper-filled"
-        />
-        <label>Axes</label>
-      </span>
-
-      <span class="p-float-label">
-        <MultiSelect
-          v-model="graph.frames"
-          :max-selected-labels="-1"
-          :options="session.frames"
-          :option-label="f => `${f.index + 1} - ${f[session.nameColumn]}`"
-          option-value="index"
-          class="w-full p-inputwrapper-filled"
-          placeholder="all frames"
-          selected-items-label="{0} frames"
-        />
-        <label>Frames</label>
-      </span>
-    </template>
-
-    <Button
-      v-tooltip.bottom="'settings'"
-      class="p-button-secondary p-button-text"
-      icon="pi pi-cog"
-      @click="e => settings.toggle(e)"
-    />
-
-    <template v-if="!props.fullscreen">
-      <Button
-        v-tooltip.bottom="'fullscreen'"
-        class="p-button-secondary p-button-text"
-        icon="pi pi-window-maximize"
-        @click="session.selectGraph(graph)"
-      />
-
-      <Button
-        v-tooltip.bottom="'remove graph'"
-        class="p-button-danger p-button-text"
-        icon="pi pi-trash"
-        @click="session.removeGraph(graph)"
-      />
-    </template>
-  </div>
-
-  <Divider v-if="!props.fullscreen" />
-
+  <!-- settings -->
   <OverlayPanel ref="settings">
     <div class="mt-3 w-12rem flex flex-column gap-5">
       <span class="p-float-label">
@@ -374,6 +402,7 @@ const roundValue = value => {
     </div>
   </OverlayPanel>
 
+  <!-- tooltip -->
   <div
     class="tooltip"
     :style="{
@@ -437,7 +466,7 @@ const roundValue = value => {
   width: 160px;
   color: #fff;
   background-color: #0008;
-  border: 1px solid #4448;
+  backdrop-filter: blur(4px);
   border-radius: 4px;
   pointer-events: none;
   transform: translate(-50%, 0);
