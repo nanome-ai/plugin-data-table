@@ -24,10 +24,11 @@ export const useRadarData = (session, graph) => {
 
     for (const frame of frames) {
       // remap values 0 to 1
-      const data = cols.map((c, i) => ({
-        index: frame.index,
-        r: (frame[c] - minValues[i]) / diffValues[i]
-      }))
+      const data = cols.map((c, i) => {
+        const d = diffValues[i]
+        let r = d === 0 ? 1 : (frame[c] - minValues[i]) / d
+        return { index: frame.index, r }
+      })
       datasets.push({ data })
     }
   })

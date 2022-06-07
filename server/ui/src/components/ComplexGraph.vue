@@ -46,12 +46,21 @@ const tooltipHandler = ctx => {
 }
 
 const isSelected = ctx => {
-  const frame = session.frames.find(f => f.index === ctx.raw.index)
+  const index = ctx.raw ? ctx.raw.index : ctx.dataset.data[0].index
+  const frame = session.frames.find(f => f.index === index)
   return session.selectedFrame === frame
 }
 
 const chartOptions = computed(() => ({
   elements: {
+    line: {
+      borderColor: ctx => {
+        return isSelected(ctx) ? '#fff' : '#fff3'
+      },
+      borderJoinStyle: 'round',
+      borderWidth: () => 4 * radiusMultiplier.value,
+      fill: false
+    },
     point: {
       borderColor: '#fff',
       borderWidth: 0,
@@ -89,9 +98,12 @@ const chartOptions = computed(() => ({
   scales: {
     r: {
       display: graph.value.type === 'radar',
-      ticks: { display: false },
-      suggestedMin: -0.2,
-      suggestedMax: 1
+      min: -0.2,
+      max: 1,
+      pointLabels: {
+        font: { size: 12 * fontMultiplier.value }
+      },
+      ticks: { display: false }
     },
     x: {
       display: graph.value.type === 'scatter',
@@ -150,7 +162,12 @@ const roundValue = value => {
       @click="onClick"
     />
 
-    <Skeleton v-else height="auto" style="aspect-ratio: 2/1" animation="none" />
+    <Skeleton
+      v-else
+      :style="{ 'aspect-ratio': graph.type === 'scatter' ? '2/1' : '1/1' }"
+      animation="none"
+      height="auto"
+    />
   </div>
 
   <div class="mb-2 flex justify-content-center gap-2">
@@ -236,31 +253,32 @@ const roundValue = value => {
   <Divider v-if="!props.fullscreen" />
 
   <OverlayPanel ref="settings">
-    <div class="w-12rem flex flex-column gap-5">
-      <span class="mt-3 p-float-label">
+    <div class="mt-3 w-12rem flex flex-column gap-5">
+      <span class="p-float-label">
         <Dropdown
           v-model="graph.type"
           :options="['radar', 'scatter']"
           class="w-full"
+          @change="settings.hide()"
         />
         <label>Graph Type</label>
       </span>
 
-      <span v-if="graph.type === 'scatter'" class="mt-3 p-float-label">
-        <MultiSelect
-          v-model="graph.frames"
-          :max-selected-labels="-1"
-          :options="session.frames"
-          :option-label="f => `${f.index + 1} - ${f[session.nameColumn]}`"
-          option-value="index"
-          class="w-full p-inputwrapper-filled"
-          placeholder="all frames"
-          selected-items-label="{0} frames"
-        />
-        <label>Included Frames</label>
-      </span>
-
       <template v-if="graph.type === 'scatter'">
+        <span class="p-float-label">
+          <MultiSelect
+            v-model="graph.frames"
+            :max-selected-labels="-1"
+            :options="session.frames"
+            :option-label="f => `${f.index + 1} - ${f[session.nameColumn]}`"
+            option-value="index"
+            class="w-full p-inputwrapper-filled"
+            placeholder="all frames"
+            selected-items-label="{0} frames"
+          />
+          <label>Frames</label>
+        </span>
+
         <div v-if="graph.reg.type !== 'none'" class="text-center text-xs">
           <template v-if="!graph.reg.error">
             <div class="mb-2">r<sup>2</sup> = {{ graph.reg.r2 }}</div>
