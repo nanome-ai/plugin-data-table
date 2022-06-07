@@ -24,9 +24,10 @@ export const useRadarData = (session, graph) => {
 
     for (const frame of frames) {
       // remap values 0 to 1
-      const data = cols.map((c, i) => {
-        return (frame[c] - minValues[i]) / diffValues[i]
-      })
+      const data = cols.map((c, i) => ({
+        index: frame.index,
+        r: (frame[c] - minValues[i]) / diffValues[i]
+      }))
       datasets.push({ data })
     }
   })
@@ -46,7 +47,11 @@ export const useScatterData = (session, graph) => {
 
     const data = session.frames
       .filter(f => !g.frames.length || g.frames.includes(f.index))
-      .map(item => ({ x: +item[g.xColumn], y: +item[g.yColumn] }))
+      .map(item => ({
+        index: item.index,
+        x: +item[g.xColumn],
+        y: +item[g.yColumn]
+      }))
 
     const datasets = [{ data }]
     graphData.value = { datasets }

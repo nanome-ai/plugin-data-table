@@ -40,11 +40,14 @@ const tooltipHandler = ctx => {
   const rect = ctx.chart.canvas.getBoundingClientRect()
   tooltip.x = rect.left + ctx.tooltip.caretX
   tooltip.y = rect.top + ctx.tooltip.caretY + 5 * radiusMultiplier.value
-  tooltip.items = ctx.tooltip.dataPoints.map(d => session.frames[d.dataIndex])
+  tooltip.items = ctx.tooltip.dataPoints.map(d => {
+    return session.frames.find(f => f.index === d.raw.index)
+  })
 }
 
-const isSelected = index => {
-  return session.selectedFrame === session.frames[index]
+const isSelected = ctx => {
+  const frame = session.frames.find(f => f.index === ctx.raw.index)
+  return session.selectedFrame === frame
 }
 
 const chartOptions = computed(() => ({
@@ -54,11 +57,11 @@ const chartOptions = computed(() => ({
       borderWidth: 0,
       // hoverBorderWidth: 1,
       backgroundColor: ctx => {
-        return isSelected(ctx.dataIndex) ? '#fff' : '#fff4'
+        return isSelected(ctx) ? '#fff' : '#fff4'
       },
       hoverRadius: () => 4 * radiusMultiplier.value,
       radius: ctx => {
-        const r = isSelected(ctx.dataIndex) ? 4 : 3
+        const r = isSelected(ctx) ? 4 : 3
         return r * radiusMultiplier.value
       }
     }
@@ -192,7 +195,7 @@ const swapAxes = () => {
           v-model="graph.frames"
           :max-selected-labels="-1"
           :options="session.frames"
-          :option-label="f => `${f.index} - ${f[session.nameColumn]}`"
+          :option-label="f => `${f.index + 1} - ${f[session.nameColumn]}`"
           option-value="index"
           class="w-full p-inputwrapper-filled"
           placeholder="all frames"
@@ -244,7 +247,7 @@ const swapAxes = () => {
           v-model="graph.frames"
           :max-selected-labels="-1"
           :options="session.frames"
-          :option-label="f => `${f.index} - ${f[session.nameColumn]}`"
+          :option-label="f => `${f.index + 1} - ${f[session.nameColumn]}`"
           option-value="index"
           class="w-full p-inputwrapper-filled"
           placeholder="all frames"
@@ -317,8 +320,9 @@ const swapAxes = () => {
       class="p-2 text-center"
     >
       <img :src="session.getImage(item.index)" class="h-4rem" />
-      <div>{{ item[session.nameColumn] }}</div>
+      <div>{{ item.index + 1 }} - {{ item[session.nameColumn] }}</div>
     </div>
+
     <div v-if="tooltip.items.length > 3">
       ... {{ tooltip.items.length - 3 }} more
     </div>
@@ -336,6 +340,7 @@ const swapAxes = () => {
   transform: translate(-50%, 0);
   transition: all 0.3s ease;
   user-select: none;
+  white-space: nowrap;
   z-index: 1000;
 }
 </style>
