@@ -6,6 +6,7 @@ import { useSessionStore } from '../store/session'
 
 import ComplexGraph from '../components/ComplexGraph.vue'
 import ComplexTable from '../components/ComplexTable.vue'
+import NewColumnMenu from '../components/NewColumnMenu.vue'
 import IntroPanel from '../components/IntroPanel.vue'
 
 const props = defineProps({
@@ -123,6 +124,8 @@ session.connect(props.id)
                 />
                 <label>Entry</label>
               </span>
+
+              <NewColumnMenu />
 
               <Button
                 v-tooltip.bottom="'settings'"

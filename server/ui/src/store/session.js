@@ -36,15 +36,18 @@ const setupEventListeners = (store, ws) => {
       })
     })
 
-    // hide columns that have > 30 char data
-    const selectedColumns = [...columns]
-    frames.forEach(o => {
-      Object.entries(o).forEach(([key, value]) => {
-        if (value.length < 30) return
-        const index = selectedColumns.indexOf(key)
-        if (index !== -1) selectedColumns.splice(index, 1)
+    if (!store.selectedColumns.length) {
+      const selectedColumns = [...columns]
+      // hide columns that have > 30 char data
+      frames.forEach(o => {
+        Object.entries(o).forEach(([key, value]) => {
+          if (value.length < 30) return
+          const index = selectedColumns.indexOf(key)
+          if (index !== -1) selectedColumns.splice(index, 1)
+        })
       })
-    })
+      store.selectedColumns = selectedColumns
+    }
 
     const name = columns.find(c => c.toLowerCase() === 'name')
     if (name) store.nameColumn = name
@@ -52,7 +55,6 @@ const setupEventListeners = (store, ws) => {
     store.frames = frames
     store.columns = columns
     store.columnTypes = columnTypes
-    store.selectedColumns = selectedColumns
   })
 
   ws.on(EVENT.IMAGE, ({ id, data }) => {
@@ -61,6 +63,7 @@ const setupEventListeners = (store, ws) => {
 
   ws.on(EVENT.SELECT_COMPLEX, index => {
     store.selectedComplex = index
+    store.selectedColumns = []
   })
 
   ws.on(EVENT.SELECT_FRAME, index => {
@@ -152,6 +155,13 @@ export const useSessionStore = defineStore('session', {
     disconnect() {
       if (!this.ws) return
       this.ws.disconnect()
+    },
+    // #endregion
+
+    // #region columns
+    addColumn(name, values) {
+      this.selectedColumns.push(name)
+      this.ws.send(EVENT.ADD_COLUMN, { name, values })
     },
     // #endregion
 

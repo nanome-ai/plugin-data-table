@@ -73,6 +73,7 @@ const onMessage = ws => e => {
     case 'image':
       send_clients(ws, type, data)
       break
+    case 'add-column':
     case 'delete-frames':
     case 'reorder-frames':
     case 'split-frames':

@@ -80,6 +80,8 @@ class DataTable(nanome.AsyncPluginInstance):
 
             if type == 'join':
                 self.update_complexes()
+            elif type == 'add-column':
+                await self.add_column(data)
             elif type == 'delete-frames':
                 await self.delete_frames(data)
             elif type == 'reorder-frames':
@@ -107,10 +109,7 @@ class DataTable(nanome.AsyncPluginInstance):
         items = [{'name': c.full_name, 'index': c.index} for c in complexes]
         await self.ws_send('complexes', items)
 
-    def on_complex_added(self):
-        self.update_complexes()
-
-    def on_complex_removed(self):
+    def on_complex_list_updated(self):
         self.update_complexes()
 
     @async_callback
@@ -159,6 +158,21 @@ class DataTable(nanome.AsyncPluginInstance):
             self.selected_complex.set_current_frame(index)
 
         await self.update_complex()
+
+    async def add_column(self, data):
+        name = data['name']
+        values = data['values']
+
+        if self.selected_is_conformer:
+            molecule = next(self.selected_complex.molecules)
+            for i, associateds in enumerate(molecule.associateds):
+                associateds[name] = str(values[i])
+        else:
+            for i, molecule in enumerate(self.selected_complex.molecules):
+                molecule.associated[name] = str(values[molecule.index])
+
+        await self.update_complex()
+        await self.update_table()
 
     async def delete_frames(self, indices):
         indices = sorted(indices, reverse=True)
