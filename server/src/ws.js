@@ -74,6 +74,7 @@ const onMessage = ws => e => {
       send_clients(ws, type, data)
       break
     case 'add-column':
+    case 'calculate-properties':
     case 'delete-frames':
     case 'reorder-frames':
     case 'split-frames':

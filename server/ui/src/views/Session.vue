@@ -128,6 +128,15 @@ session.connect(props.id)
               <NewColumnMenu />
 
               <Button
+                v-tooltip.bottom="'using RDKit'"
+                :loading="session.loading"
+                class="p-button-outlined"
+                label="calculate properties"
+                icon="pi pi-server"
+                @click="session.calculateProperties"
+              />
+
+              <Button
                 v-tooltip.bottom="'settings'"
                 class="p-button-outlined"
                 icon="pi pi-cog"

@@ -55,6 +55,7 @@ const setupEventListeners = (store, ws) => {
     store.frames = frames
     store.columns = columns
     store.columnTypes = columnTypes
+    store.loading = false
   })
 
   ws.on(EVENT.IMAGE, ({ id, data }) => {
@@ -162,6 +163,12 @@ export const useSessionStore = defineStore('session', {
     addColumn(name, values) {
       this.selectedColumns.push(name)
       this.ws.send(EVENT.ADD_COLUMN, { name, values })
+    },
+
+    calculateProperties() {
+      this.selectedColumns.push('MW', 'logP', 'TPSA', 'HBA', 'HBD', 'RB', 'AR')
+      this.loading = true
+      this.ws.send(EVENT.CALCULATE_PROPERTIES)
     },
     // #endregion
 
