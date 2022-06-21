@@ -6,6 +6,7 @@ import { useSessionStore } from '../store/session'
 
 import ComplexGraph from '../components/ComplexGraph.vue'
 import ComplexTable from '../components/ComplexTable.vue'
+import EditFrame from '../components/EditFrame.vue'
 import NewColumnMenu from '../components/NewColumnMenu.vue'
 import IntroPanel from '../components/IntroPanel.vue'
 
@@ -300,6 +301,8 @@ session.connect(props.id)
           >
             {{ session.selectionMode ? 'Cancel' : 'Selection Mode' }}
           </Button>
+
+          <EditFrame v-if="!session.selectionMode" />
 
           <!-- <Button
             v-if="!session.selectionMode"

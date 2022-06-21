@@ -16,8 +16,10 @@ import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import Chip from 'primevue/chip'
 import ColorPicker from 'primevue/colorpicker'
+import Dialog from 'primevue/dialog'
 import Divider from 'primevue/divider'
 import Dropdown from 'primevue/dropdown'
+import Image from 'primevue/image'
 import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
 import Menu from 'primevue/menu'
@@ -45,8 +47,10 @@ app.component('Button', Button)
 app.component('Checkbox', Checkbox)
 app.component('Chip', Chip)
 app.component('ColorPicker', ColorPicker)
+app.component('Dialog', Dialog)
 app.component('Divider', Divider)
 app.component('Dropdown', Dropdown)
+app.component('Image', Image)
 app.component('InputNumber', InputNumber)
 app.component('InputText', InputText)
 app.component('Menu', Menu)

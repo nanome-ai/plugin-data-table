@@ -109,6 +109,8 @@ class DataTable(nanome.AsyncPluginInstance):
                 await self.select_frame(data)
             elif type == 'split-frames':
                 await self.split_frames(data)
+            elif type == 'update-frame':
+                await self.update_frame(data)
 
             Logs.debug('done', type)
 
@@ -249,6 +251,20 @@ class DataTable(nanome.AsyncPluginInstance):
 
         if remove:
             await self.delete_frames(indices)
+
+    async def update_frame(self, data):
+        index = data['index']
+        del data['index']
+
+        if self.selected_is_conformer:
+            molecule = next(self.selected_complex.molecules)
+            for name, value in data.items():
+                molecule.associateds[index][name] = value
+        else:
+            molecule = self.selected_complex._molecules[index]
+            molecule.associated.update(data)
+
+        await self.update_complex()
 
     async def update_complex(self):
         self.ignore_next_update += 1

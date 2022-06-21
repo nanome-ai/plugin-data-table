@@ -71,6 +71,10 @@ const setupEventListeners = (store, ws) => {
     store.selectFrame(index, false)
   })
 
+  ws.on(EVENT.UPDATE_FRAME, data => {
+    store.updateFrame(data, false)
+  })
+
   ws.on(EVENT.ERROR, error => {
     store.$toast.add({
       severity: 'error',
@@ -225,6 +229,13 @@ export const useSessionStore = defineStore('session', {
         remove
       })
       this.selectedFrames = []
+    },
+
+    updateFrame(data, send = true) {
+      const frame = this.frames.find(f => f.index === data.index)
+      if (!frame) return
+      Object.assign(frame, data)
+      if (send) this.ws.send(EVENT.UPDATE_FRAME, data)
     },
 
     unhideAll() {

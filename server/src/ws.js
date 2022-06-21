@@ -82,6 +82,7 @@ const onMessage = ws => e => {
       break
     case 'select-complex':
     case 'select-frame':
+    case 'update-frame':
       broadcast(ws, type, data)
       break
     default:

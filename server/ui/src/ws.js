@@ -18,7 +18,8 @@ export const EVENT = {
   SELECT_COMPLEX: 'select-complex',
   SELECT_FRAME: 'select-frame',
   SPLIT_FRAMES: 'split-frames',
-  STATUS: 'status'
+  STATUS: 'status',
+  UPDATE_FRAME: 'update-frame'
 }
 
 export function useWS(id) {

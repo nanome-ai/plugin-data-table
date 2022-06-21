@@ -5,7 +5,6 @@ import { useSessionStore } from '../store/session'
 import { FilterMatchMode, FilterOperator } from 'primevue/api'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
-import Image from 'primevue/image'
 
 const OPERATOR_MAP = {
   [FilterMatchMode.EQUALS]: '=',
