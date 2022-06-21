@@ -139,6 +139,11 @@ export const useSessionStore = defineStore('session', {
       }
     },
 
+    hasRDKitProperties() {
+      const columns = ['MW', 'logP', 'TPSA', 'HBA', 'HBD', 'RB', 'AR']
+      return columns.every(c => this.columns.includes(c))
+    },
+
     numericColumns() {
       return this.columns.filter(c => this.columnTypes[c] === 'numeric')
     },

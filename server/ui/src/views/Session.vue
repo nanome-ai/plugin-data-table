@@ -7,7 +7,7 @@ import { useSessionStore } from '../store/session'
 import ComplexGraph from '../components/ComplexGraph.vue'
 import ComplexTable from '../components/ComplexTable.vue'
 import EditFrame from '../components/EditFrame.vue'
-import NewColumnMenu from '../components/NewColumnMenu.vue'
+import NewColumn from '../components/NewColumn.vue'
 import IntroPanel from '../components/IntroPanel.vue'
 
 const props = defineProps({
@@ -126,21 +126,12 @@ session.connect(props.id)
                 <label>Entry</label>
               </span>
 
-              <NewColumnMenu />
+              <NewColumn />
 
               <Button
-                v-tooltip.bottom="'using RDKit'"
-                :loading="session.loading"
-                class="p-button-outlined"
-                label="calculate properties"
-                icon="pi pi-server"
-                @click="session.calculateProperties"
-              />
-
-              <Button
-                v-tooltip.bottom="'settings'"
                 class="p-button-outlined"
                 icon="pi pi-cog"
+                label="settings"
                 @click="e => settings.toggle(e)"
               />
 
@@ -167,14 +158,26 @@ session.connect(props.id)
                     />
                     <label>Name Column</label>
                   </span>
+
+                  <Button
+                    v-tooltip.bottom="'using RDKit'"
+                    :disabled="session.hasRDKitProperties"
+                    :loading="session.loading"
+                    class="p-button-outlined"
+                    label="calculate properties"
+                    icon="pi pi-server"
+                    @click="session.calculateProperties"
+                  />
                 </div>
               </OverlayPanel>
 
               <ToggleButton
                 v-model="showGraphs"
-                v-tooltip.bottom="showGraphs ? 'hide graphs' : 'show graphs'"
+                class="ml-auto"
                 on-icon="pi pi-chart-bar"
                 off-icon="pi pi-chart-bar"
+                on-label="hide graphs"
+                off-label="show graphs"
               />
             </div>
 
