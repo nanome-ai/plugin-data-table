@@ -46,7 +46,7 @@ class DataTable(nanome.AsyncPluginInstance):
         self.temp_sdf = tempfile.NamedTemporaryFile(delete=False, suffix='.sdf', dir=self.temp_dir.name)
 
         self.url, self.https = self.custom_data
-        
+
         # If 'data-table-server' not available on local docker network,
         # use external url as server_url
         priority_server_host = 'data-table-server'
@@ -71,7 +71,8 @@ class DataTable(nanome.AsyncPluginInstance):
         self.ws_loop()
 
     async def ws_connect(self):
-        ws_url = f'ws://{self.server_url}/ws'
+        protocol = 'wss' if self.https else 'ws'
+        ws_url = f'{protocol}://{self.server_url}/ws'
         Logs.debug(f'connecting to {ws_url}')
 
         while True:
