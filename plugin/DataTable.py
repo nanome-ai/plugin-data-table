@@ -46,6 +46,7 @@ class DataTable(nanome.AsyncPluginInstance):
         self.temp_sdf = tempfile.NamedTemporaryFile(delete=False, suffix='.sdf', dir=self.temp_dir.name)
 
         self.url, self.https = self.custom_data
+        self.ws = None
 
         # If 'data-table-server' not available on local docker network,
         # use external url as server_url
@@ -133,7 +134,8 @@ class DataTable(nanome.AsyncPluginInstance):
 
     @async_callback
     async def on_stop(self):
-        await self.ws.close()
+        if self.ws:
+            await self.ws.close()
 
     @async_callback
     async def update_complexes(self):
