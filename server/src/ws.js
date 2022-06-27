@@ -16,7 +16,7 @@ const broadcast = (ws, type, data, toPlugin = null) => {
     : 'broadcast'
 
   if (type !== 'image') {
-    const debug = type === 'data' ? '---' : data
+    const debug = type === 'frames' ? '---' : data
     console.log(ws.session, logType, type, debug)
   }
 
@@ -69,10 +69,12 @@ const onMessage = ws => e => {
       }
       break
     case 'complexes':
-    case 'data':
+    case 'frames':
     case 'image':
       send_clients(ws, type, data)
       break
+    case 'add-column':
+    case 'calculate-properties':
     case 'delete-frames':
     case 'reorder-frames':
     case 'split-frames':
@@ -80,6 +82,7 @@ const onMessage = ws => e => {
       break
     case 'select-complex':
     case 'select-frame':
+    case 'update-frame':
       broadcast(ws, type, data)
       break
     default:

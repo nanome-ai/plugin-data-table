@@ -1,11 +1,10 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { useMux, useVModel } from '../composables.js'
+import { useSessionStore } from '../store/session'
 
 import { FilterMatchMode, FilterOperator } from 'primevue/api'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
-import Image from 'primevue/image'
 
 const OPERATOR_MAP = {
   [FilterMatchMode.EQUALS]: '=',
@@ -17,41 +16,34 @@ const OPERATOR_MAP = {
 }
 
 const props = defineProps({
-  columns: Array,
-  columnTypes: Object,
-  complexIndex: Number,
-  hiddenFrames: Array,
-  images: Object,
-  loading: Boolean,
-  modelValue: Array,
   multiSelect: Boolean,
-  nameColumn: String,
-  reorderable: Boolean,
-  selectedFrame: Object,
-  selectedRows: Array
+  reorderable: Boolean
 })
 
-const emit = defineEmits([
-  'update:modelValue',
-  'update:selectedFrame',
-  'update:selectedRows'
-])
-
-const data = useVModel(props, emit)
-const selectedFrame = useVModel(props, emit, 'selectedFrame')
-const selectedRows = useVModel(props, emit, 'selectedRows')
+const session = useSessionStore()
 
 const sortField = ref(null)
-const selection = useMux(() => props.multiSelect, selectedRows, selectedFrame)
+const selection = computed({
+  get: () => {
+    return props.multiSelect ? session.selectedFrames : session.selectedFrame
+  },
+  set: value => {
+    if (props.multiSelect) {
+      session.selectedFrames = value
+    } else {
+      session.selectedFrame = value
+    }
+  }
+})
 
 const filteredColumns = computed(() => {
-  const columns = props.columns.filter(c => c !== props.nameColumn)
-  columns.unshift(props.nameColumn)
+  const columns = session.displayColumns.filter(c => c !== session.nameColumn)
+  columns.unshift(session.nameColumn)
   return columns
 })
 
 const filteredRows = computed(() => {
-  return data.value.filter(row => !props.hiddenFrames.includes(row.index))
+  return session.frames.filter(f => !session.hiddenFrames.includes(f.index))
 })
 
 const filters = ref({})
@@ -80,11 +72,11 @@ watch(
 
 const resetFilters = () => {
   filters.value = {}
-  for (const column of props.columns) {
+  for (const column of session.columns) {
     const matchMode = {
       text: FilterMatchMode.CONTAINS,
       numeric: FilterMatchMode.LESS_THAN
-    }[props.columnTypes[column]]
+    }[session.columnTypes[column]]
 
     filters.value[column] = {
       operator: FilterOperator.AND,
@@ -93,12 +85,7 @@ const resetFilters = () => {
   }
 }
 
-watch(() => props.columnTypes, resetFilters, { immediate: true })
-
-const getImage = index => {
-  const id = props.complexIndex + '-' + index
-  return props.images[id]
-}
+watch(() => session.columnTypes, resetFilters, { immediate: true })
 
 const onColumnReorder = (...args) => {
   console.log('onColumnReorder', ...args)
@@ -107,6 +94,11 @@ const onColumnReorder = (...args) => {
 const onRowReorder = e => {
   sortField.value = null
   data.value = e.value
+}
+
+const onRowSelect = e => {
+  if (props.multiSelect) return
+  session.selectFrame(e.data.index)
 }
 
 const resetFilter = filter => {
@@ -120,12 +112,12 @@ const resetFilter = filter => {
 </script>
 
 <template>
-  <div class="mt-2 max-w-full max-h-full overflow-auto">
+  <div class="mt-2 overflow-auto">
     <DataTable
       v-model:filters="filters"
       v-model:selection="selection"
       v-model:sortField="sortField"
-      :loading="!data.length || props.loading"
+      :loading="!session.frames.length || session.loading"
       :meta-key-selection="false"
       :selection-mode="props.multiSelect ? 'multiple' : 'single'"
       :value="filteredRows"
@@ -135,6 +127,7 @@ const resetFilter = filter => {
       removable-sort
       @column-reorder="onColumnReorder"
       @row-reorder="onRowReorder"
+      @row-select="onRowSelect"
     >
       <template #header>
         <div v-if="activeFilters.length" class="flex">
@@ -178,8 +171,8 @@ const resetFilter = filter => {
       <Column field="image" header="Image" body-class="py-0 text-center">
         <template #body="{ data }">
           <Image
-            v-if="getImage(data.index)"
-            :src="`data:image/png;base64,${getImage(data.index)}`"
+            v-if="session.getImage(data.index)"
+            :src="session.getImage(data.index)"
             image-class="h-4rem"
             preview
           />
@@ -193,20 +186,20 @@ const resetFilter = filter => {
         :key="col"
         :field="col"
         :header="col"
-        :data-type="props.columnTypes[col]"
+        :data-type="session.columnTypes[col]"
         body-class="text-center"
         sortable
       >
         <template #filter="{ filterCallback, filterModel }">
           <InputText
-            v-if="columnTypes[col] === 'text'"
+            v-if="session.columnTypes[col] === 'text'"
             v-model="filterModel.value"
             :placeholder="`Search ${col}`"
             class="p-column-filter"
             @keydown.enter="filterCallback"
           />
           <InputNumber
-            v-if="columnTypes[col] === 'numeric'"
+            v-if="session.columnTypes[col] === 'numeric'"
             v-model="filterModel.value"
             class="p-column-filter"
             @keydown.enter="filterCallback"

@@ -5,6 +5,8 @@ from nanome.util import async_callback, Logs
 from cairosvg import svg2png
 from rdkit import Chem
 from rdkit.Chem import AllChem, Draw
+import rdkit.Chem.Descriptors as Desc
+import rdkit.Chem.rdMolDescriptors as mDesc
 
 import argparse
 import asyncio
@@ -16,11 +18,24 @@ import string
 import tempfile
 import urllib
 import websockets
+from collections import namedtuple
 
 # mol 2d image drawing options
 Draw.DrawingOptions.atomLabelFontSize = 40
 Draw.DrawingOptions.dotsPerAngstrom = 100
 Draw.DrawingOptions.bondLineWidth = 8
+
+
+Property = namedtuple('Property', ['name', 'format', 'fn'])
+RDKIT_PROPERTIES = [
+    Property('MW', '%.3f', Desc.MolWt),
+    Property('logP', '%.3f', lambda mol: mDesc.CalcCrippenDescriptors(mol)[0]),
+    Property('TPSA', '%.3f', mDesc.CalcTPSA),
+    Property('HBA', '%d', mDesc.CalcNumHBA),
+    Property('HBD', '%d', mDesc.CalcNumHBD),
+    Property('RB', '%d', mDesc.CalcNumRotatableBonds),
+    Property('AR', '%d', mDesc.CalcNumAromaticRings)
+]
 
 
 class DataTable(nanome.AsyncPluginInstance):
@@ -31,7 +46,8 @@ class DataTable(nanome.AsyncPluginInstance):
         self.temp_sdf = tempfile.NamedTemporaryFile(delete=False, suffix='.sdf', dir=self.temp_dir.name)
 
         self.url, self.https = self.custom_data
-        
+        self.ws = None
+
         # If 'data-table-server' not available on local docker network,
         # use external url as server_url
         priority_server_host = 'data-table-server'
@@ -56,7 +72,8 @@ class DataTable(nanome.AsyncPluginInstance):
         self.ws_loop()
 
     async def ws_connect(self):
-        ws_url = f'ws://{self.server_url}/ws'
+        protocol = 'wss' if self.https else 'ws'
+        ws_url = f'{protocol}://{self.server_url}/ws'
         Logs.debug(f'connecting to {ws_url}')
 
         while True:
@@ -92,6 +109,10 @@ class DataTable(nanome.AsyncPluginInstance):
 
             if type == 'join':
                 self.update_complexes()
+            elif type == 'add-column':
+                await self.add_column(data)
+            elif type == 'calculate-properties':
+                await self.calculate_properties()
             elif type == 'delete-frames':
                 await self.delete_frames(data)
             elif type == 'reorder-frames':
@@ -102,6 +123,8 @@ class DataTable(nanome.AsyncPluginInstance):
                 await self.select_frame(data)
             elif type == 'split-frames':
                 await self.split_frames(data)
+            elif type == 'update-frame':
+                await self.update_frame(data)
 
             Logs.debug('done', type)
 
@@ -111,7 +134,8 @@ class DataTable(nanome.AsyncPluginInstance):
 
     @async_callback
     async def on_stop(self):
-        await self.ws.close()
+        if self.ws:
+            await self.ws.close()
 
     @async_callback
     async def update_complexes(self):
@@ -119,10 +143,7 @@ class DataTable(nanome.AsyncPluginInstance):
         items = [{'name': c.full_name, 'index': c.index} for c in complexes]
         await self.ws_send('complexes', items)
 
-    def on_complex_added(self):
-        self.update_complexes()
-
-    def on_complex_removed(self):
+    def on_complex_list_updated(self):
         self.update_complexes()
 
     @async_callback
@@ -172,6 +193,22 @@ class DataTable(nanome.AsyncPluginInstance):
 
         await self.update_complex()
 
+    async def add_column(self, data, update=True):
+        name = data['name']
+        values = data['values']
+
+        if self.selected_is_conformer:
+            molecule = next(self.selected_complex.molecules)
+            for i, associateds in enumerate(molecule.associateds):
+                associateds[name] = str(values[i])
+        else:
+            for i, molecule in enumerate(self.selected_complex.molecules):
+                molecule.associated[name] = str(values[i])
+
+        if update:
+            await self.update_complex()
+            await self.update_table()
+
     async def delete_frames(self, indices):
         indices = sorted(indices, reverse=True)
         if self.selected_is_conformer:
@@ -205,6 +242,7 @@ class DataTable(nanome.AsyncPluginInstance):
     async def split_frames(self, data):
         indices = data['indices']
         single = data['single']
+        remove = data['remove']
         name_column = data['name_column']
         source = self.selected_complex.convert_to_frames()
         complexes = []
@@ -225,7 +263,23 @@ class DataTable(nanome.AsyncPluginInstance):
 
         Complex.align_origins(source, *complexes)
         await self.update_structures_deep(complexes)
-        await self.delete_frames(indices)
+
+        if remove:
+            await self.delete_frames(indices)
+
+    async def update_frame(self, data):
+        index = data['index']
+        del data['index']
+
+        if self.selected_is_conformer:
+            molecule = next(self.selected_complex.molecules)
+            for name, value in data.items():
+                molecule.associateds[index][name] = value
+        else:
+            molecule = self.selected_complex._molecules[index]
+            molecule.associated.update(data)
+
+        await self.update_complex()
 
     async def update_complex(self):
         self.ignore_next_update += 1
@@ -237,14 +291,39 @@ class DataTable(nanome.AsyncPluginInstance):
         complex = self.selected_complex.convert_to_frames()
         complex.index = self.selected_complex.index
         self.selected_num_frames = len(list(complex.molecules))
-        data = []
+        frames = []
 
         for i, mol in enumerate(complex.molecules):
-            data.append({'index': i, **mol.associated})
+            frames.append({'index': i, **mol.associated})
 
-        await self.ws_send('data', data)
+        await self.ws_send('frames', frames)
         await self.ws_send('select-frame', frame)
         await self.generate_images(complex)
+
+    async def calculate_properties(self):
+        try:
+            self.selected_complex.io.to_sdf(self.temp_sdf.name)
+            supplier = Chem.SDMolSupplier(self.temp_sdf.name)
+        except:
+            return
+
+        properties = {}
+        for property in RDKIT_PROPERTIES:
+            properties[property.name] = [''] * len(supplier)
+
+        for i, mol in enumerate(supplier):
+            if mol is None:
+                continue
+
+            for property in RDKIT_PROPERTIES:
+                value = property.format % property.fn(mol)
+                properties[property.name][i] = value
+
+        for property in RDKIT_PROPERTIES:
+            await self.add_column({'name': property.name, 'values': properties[property.name]}, False)
+
+        await self.update_complex()
+        await self.update_table()
 
     async def generate_images(self, complex, frame=None):
         try:

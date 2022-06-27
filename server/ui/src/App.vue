@@ -1,6 +1,9 @@
 <script setup>
 import { onMounted } from 'vue'
 
+import ConfirmPopup from 'primevue/confirmpopup'
+import Toast from 'primevue/toast'
+
 onMounted(() => {
   document.body.addEventListener('click', e => {
     document.body.classList.add('using-mouse')
@@ -17,6 +20,7 @@ onMounted(() => {
 
 <template>
   <router-view />
+  <ConfirmPopup />
   <Toast />
 </template>
 
@@ -32,8 +36,8 @@ html {
 }
 
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   background: transparent;
 }
 
@@ -44,6 +48,21 @@ html {
 ::-webkit-scrollbar-thumb {
   background: var(--surface-b);
   border-radius: 5px;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.overflow-auto {
+  scrollbar-gutter: stable;
+}
+
+.p-sidebar-content {
+  position: unset !important;
+  height: 100%;
 }
 
 body {

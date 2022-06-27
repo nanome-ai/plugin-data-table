@@ -1,200 +1,92 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
-import { EVENT, STATUS, useWS } from '../ws'
+import { computed, ref } from 'vue'
+import { useConfirm } from 'primevue/useconfirm'
+import { STATUS } from '../ws'
+import { useSessionStore } from '../store/session'
 
+import ComplexGraph from '../components/ComplexGraph.vue'
 import ComplexTable from '../components/ComplexTable.vue'
-import ExampleImage from '../assets/image.png'
+import EditFrame from '../components/EditFrame.vue'
+import NewColumn from '../components/NewColumn.vue'
+import IntroPanel from '../components/IntroPanel.vue'
 
 const props = defineProps({
   id: String
 })
 
-const ws = useWS(props.id)
-const { complexes, data, images, status } = ws
-const loading = ref(true)
-const columns = ref([])
-const columnTypes = ref({})
+const session = useSessionStore()
+const confirm = useConfirm()
 
-const selectedColumns = ref([...columns.value])
-const selectedComplex = ref(null)
-const selectedFrame = ref(null)
-const selectedRows = ref([])
-const hiddenFrames = ref([])
-
-const selectionMode = ref(false)
+const settings = ref(null)
 const reorderMode = ref(false)
-const nameColumn = ref(null)
-const oldData = ref([])
+const showGraphs = ref(false)
 
-const displayColumns = computed(() => {
-  return columns.value.filter(c => selectedColumns.value.includes(c))
-})
-
-const selectedIndices = computed(() => {
-  return selectedRows.value.map(r => r.index)
-})
-
-watch(data, () => {
-  // trim string columns
-  data.value.forEach(o => {
-    Object.entries(o).forEach(([key, value]) => {
-      if (typeof value !== 'string') return
-      o[key] = value.trim()
-    })
-  })
-
-  const columnSet = new Set([].concat(...data.value.map(o => Object.keys(o))))
-  columnSet.delete('index')
-  columns.value = Array.from(columnSet)
-
-  const name = columns.value.find(c => c.toLowerCase() === 'name')
-  if (name) nameColumn.value = name
-})
-
-watch(
-  columns,
-  () => {
-    selectedColumns.value = [...columns.value]
-
-    // hide columns that have > 30 char data
-    data.value.forEach(o => {
-      Object.entries(o).forEach(([key, value]) => {
-        if (value.length < 30) return
-        const index = selectedColumns.value.indexOf(key)
-        if (index !== -1) selectedColumns.value.splice(index, 1)
-      })
-    })
-
-    // guess types of columns based on data
-    columnTypes.value = {}
-    data.value.forEach(o => {
-      Object.entries(o).forEach(([key, value]) => {
-        if (columnTypes.value[key] === 'text') return
-        const type = isNaN(value) ? 'text' : 'numeric'
-        columnTypes.value[key] = type
-      })
-    })
-  },
-  { immediate: true }
-)
-
-ws.on(EVENT.DATA, () => {
-  loading.value = false
-})
-
-ws.on(EVENT.SELECT_COMPLEX, value => {
-  selectedComplex.value = value
-})
-
-ws.on(EVENT.SELECT_FRAME, index => {
-  selectedFrame.value = data.value.find(c => c.index === index)
-})
-
-const deleteSelection = () => {
-  loading.value = true
-  ws.send(EVENT.DELETE_FRAMES, selectedIndices.value)
-  selectedRows.value = []
-}
-
-const hideSelection = () => {
-  hiddenFrames.value.push(...selectedIndices.value)
-  selectedRows.value = []
-}
-
-const saveReorder = () => {
-  loading.value = true
-  oldData.value = [...data.value]
-  const ids = data.value.map(f => f.index)
-  ws.send(EVENT.REORDER_FRAMES, ids)
-  reorderMode.value = false
-}
-
-const selectComplex = event => {
-  data.value = []
-  selectedFrame.value = null
-  if (!event) return
-  ws.send(EVENT.SELECT_COMPLEX, event.value)
-}
-
-const selectFrame = event => {
-  if (!event) return
-  ws.send(EVENT.SELECT_FRAME, event.index)
-}
-
-const splitSelection = single => {
-  loading.value = true
-  ws.send(EVENT.SPLIT_FRAMES, {
-    indices: selectedIndices.value,
-    name_column: nameColumn.value,
-    single
-  })
-  selectedRows.value = []
-}
-
-const toggleReorderMode = () => {
-  reorderMode.value = !reorderMode.value
-  if (reorderMode.value) {
-    oldData.value = [...data.value]
-  } else {
-    data.value = [...oldData.value]
+const showFullscreenGraph = computed({
+  get: () => session.selectedGraph !== null,
+  set: value => {
+    if (!value) session.selectGraph(null)
   }
-}
+})
+
+// const oldData = ref([])
+
+// const saveReorder = () => {
+//   loading.value = true
+//   oldData.value = [...data.value]
+//   const ids = data.value.map(f => f.index)
+//   ws.send(EVENT.REORDER_FRAMES, ids)
+//   reorderMode.value = false
+// }
+
+// const toggleReorderMode = () => {
+//   reorderMode.value = !reorderMode.value
+//   if (reorderMode.value) {
+//     oldData.value = [...data.value]
+//   } else {
+//     data.value = [...oldData.value]
+//   }
+// }
 
 const toggleSelectionMode = () => {
-  selectionMode.value = !selectionMode.value
-  selectedRows.value = []
+  session.selectionMode = !session.selectionMode
+  session.selectedFrames = []
 }
 
-const unhideAll = () => {
-  hiddenFrames.value = []
+const confirmDelete = e => {
+  confirm.require({
+    target: e.currentTarget,
+    message: 'Are you sure you want to delete the selected frame(s)?',
+    icon: 'pi pi-trash',
+    acceptClass: 'p-button-danger',
+    acceptLabel: 'Delete',
+    rejectClass: 'p-button-secondary p-button-text',
+    rejectLabel: 'Cancel',
+    accept: () => {
+      session.deleteSelection()
+    }
+  })
 }
 
-ws.connect()
+session.connect(props.id)
 </script>
 
 <template>
-  <div v-if="status === STATUS.ONLINE && !selectedComplex" class="h-full grid">
-    <div class="col-5 flex align-items-center justify-content-center">
-      <div class="inline-block">
-        <h1 class="mt-0 mb-2 text-6xl">Data Table Plugin</h1>
-        <div class="mb-8 text-500 text-xl">
-          View your multi-frame molecule metadata<br />
-          in an interactive table.
-        </div>
+  <IntroPanel
+    v-if="session.status === STATUS.ONLINE && !session.selectedComplex"
+  >
+    <div class="mb-3 text-xl">Select an entry to begin</div>
+    <Dropdown
+      v-model="session.selectedComplex"
+      :options="session.complexes"
+      class="w-full"
+      option-label="name"
+      option-value="index"
+      placeholder="click here"
+      @change="({ value }) => session.selectComplex(value)"
+    />
+  </IntroPanel>
 
-        <div
-          class="surface-card py-5 border-2 border-100 text-center"
-          style="border-radius: 8px"
-        >
-          <div class="mb-3 text-xl">Select an entry to begin</div>
-          <Dropdown
-            v-model="selectedComplex"
-            :options="complexes"
-            class="w-15rem"
-            option-label="name"
-            option-value="index"
-            placeholder="click here"
-            @change="selectComplex"
-          />
-        </div>
-      </div>
-    </div>
-
-    <div
-      class="col-7 px-6 flex align-items-center justify-content-center surface-50 text-center"
-    >
-      <div class="inline-block">
-        <h2 class="text-4xl">Example Output</h2>
-        <img :src="ExampleImage" alt="example" class="w-full" />
-        <div class="mt-4 text-500 text-xl">
-          Best used for analyzing metadata for a multi-frame SDF small molecule
-          entry
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div v-else class="h-full flex align-items-center justify-content-center">
+  <div v-else class="h-full flex-center">
     <div
       class="flex flex-column surface-card max-w-full max-h-full min-w-2 p-4 shadow-2 border-round text-center"
     >
@@ -202,15 +94,15 @@ ws.connect()
         {{ props.id }}
       </div>
 
-      <div v-if="status === STATUS.OFFLINE">
+      <div v-if="session.status === STATUS.OFFLINE">
         <div>Disconnected</div>
         <div class="py-4">
           <i class="pi pi-times-circle text-6xl" />
         </div>
-        <Button @click="ws.connect">Reconnect</Button>
+        <Button @click="session.connect(props.id)">Reconnect</Button>
       </div>
 
-      <div v-else-if="status === STATUS.CONNECTING">
+      <div v-else-if="session.status === STATUS.CONNECTING">
         <div>Connecting...</div>
         <div class="py-4">
           <i class="pi pi-spin pi-spinner text-6xl" />
@@ -218,68 +110,148 @@ ws.connect()
       </div>
 
       <template v-else>
-        <div>
-          <div class="mx-2 inline-block">
-            <div class="mb-2 text-sm text-left">Entry</div>
-            <Dropdown
-              v-model="selectedComplex"
-              :options="complexes"
-              class="w-15rem"
-              option-label="name"
-              option-value="index"
-              placeholder="select an entry"
-              @change="selectComplex"
+        <div class="flex min-h-0">
+          <div class="flex flex-column min-w-0">
+            <div class="mt-2 flex justify-content-center gap-2">
+              <span class="p-float-label">
+                <Dropdown
+                  v-model="session.selectedComplex"
+                  :options="session.complexes"
+                  class="w-15rem p-inputwrapper-filled"
+                  option-label="name"
+                  option-value="index"
+                  placeholder="select an entry"
+                  @change="({ value }) => session.selectComplex(value)"
+                />
+                <label>Entry</label>
+              </span>
+
+              <NewColumn />
+
+              <Button
+                class="p-button-outlined"
+                icon="pi pi-cog"
+                label="settings"
+                @click="e => settings.toggle(e)"
+              />
+
+              <OverlayPanel ref="settings">
+                <div class="mt-3 flex flex-column gap-5">
+                  <span class="p-float-label">
+                    <MultiSelect
+                      v-model="session.selectedColumns"
+                      :options="session.columns"
+                      :max-selected-labels="0.1"
+                      class="w-15rem p-inputwrapper-filled"
+                      placeholder="toggle columns"
+                      selected-items-label="toggle columns"
+                    />
+                    <label>Show Columns</label>
+                  </span>
+
+                  <span class="p-float-label">
+                    <Dropdown
+                      v-model="session.nameColumn"
+                      :options="session.columns"
+                      class="w-15rem p-inputwrapper-filled"
+                      placeholder="no name column"
+                    />
+                    <label>Name Column</label>
+                  </span>
+
+                  <Button
+                    v-tooltip.bottom="'using RDKit'"
+                    :disabled="session.hasRDKitProperties"
+                    :loading="session.loading"
+                    class="p-button-outlined"
+                    label="calculate properties"
+                    icon="pi pi-server"
+                    @click="session.calculateProperties"
+                  />
+                </div>
+              </OverlayPanel>
+
+              <ToggleButton
+                v-model="showGraphs"
+                class="ml-auto"
+                on-icon="pi pi-chart-bar"
+                off-icon="pi pi-chart-bar"
+                on-label="hide graphs"
+                off-label="show graphs"
+              />
+            </div>
+
+            <ComplexTable
+              class="flex-grow-1"
+              :multi-select="session.selectionMode"
+              :reorderable="reorderMode"
             />
           </div>
 
-          <div class="mx-2 inline-block">
-            <div class="mb-2 text-sm text-left">Show Columns</div>
-            <MultiSelect
-              v-model="selectedColumns"
-              :options="columns"
-              :max-selected-labels="0.1"
-              class="w-15rem"
-              placeholder="toggle columns"
-              selected-items-label="toggle columns"
-            />
-          </div>
+          <template v-if="showGraphs">
+            <Divider layout="vertical" />
 
-          <div class="mx-2 inline-block">
-            <div class="mb-2 text-sm text-left">Name Column</div>
-            <Dropdown
-              v-model="nameColumn"
-              :options="columns"
-              class="w-15rem"
-              placeholder="no name column"
-            />
-          </div>
+            <div
+              class="pl-2 flex flex-column overflow-auto"
+              style="min-width: 33%"
+            >
+              <ComplexGraph
+                v-for="graph in session.graphs"
+                :key="graph.id"
+                :graph="graph"
+              />
+
+              <div class="flex-center flex-wrap gap-2">
+                <Button
+                  class="p-button-text"
+                  label="new graph"
+                  icon="pi pi-plus"
+                  @click="session.addGraph(false)"
+                />
+
+                <Button
+                  v-if="session.selectedFrames.length"
+                  class="p-button-text"
+                  label="new graph from selection"
+                  icon="pi pi-plus"
+                  @click="session.addGraph(true)"
+                />
+              </div>
+            </div>
+          </template>
         </div>
 
-        <ComplexTable
-          class="flex-grow-1"
-          :columns="displayColumns"
-          :column-types="columnTypes"
-          :complex-index="selectedComplex"
-          :hidden-frames="hiddenFrames"
-          :images="images"
-          :loading="loading"
-          :multi-select="selectionMode"
-          :name-column="nameColumn"
-          :reorderable="reorderMode"
-          v-model="data"
-          v-model:selectedFrame="selectedFrame"
-          v-model:selectedRows="selectedRows"
-          @update:selectedFrame="selectFrame"
-        />
-
         <div class="pt-4">
-          <template v-if="selectionMode">
+          <template v-if="session.selectionMode">
             <Button
-              :disabled="!selectedRows.length"
+              :disabled="!session.selectedFrames.length"
               class="mx-2 p-button-danger"
-              @click="deleteSelection"
+              @click="confirmDelete"
             >
-              Delete
+              <i class="mr-2 pi pi-trash" /> Delete
+            </Button>
+            <Menu
+              ref="duplicate"
+              :model="[
+                {
+                  label: 'single entry',
+                  icon: 'pi pi-file',
+                  command: () => session.splitSelection(true, false)
+                },
+                {
+                  label: 'multiple entries',
+                  icon: 'pi pi-copy',
+                  command: () => session.splitSelection(false, false)
+                }
+              ]"
+              popup
+            />
+            <Button
+              :disabled="!session.selectedFrames.length"
+              class="mx-2"
+              @click="e => $refs.duplicate.toggle(e)"
+            >
+              <i class="mr-2 pi pi-clone" /> Duplicate
             </Button>
             <Menu
               ref="split"
@@ -287,29 +259,29 @@ ws.connect()
                 {
                   label: 'single entry',
                   icon: 'pi pi-file',
-                  command: () => splitSelection(true)
+                  command: () => session.splitSelection(true, true)
                 },
                 {
                   label: 'multiple entries',
                   icon: 'pi pi-copy',
-                  command: () => splitSelection(false)
+                  command: () => session.splitSelection(false, true)
                 }
               ]"
               popup
             />
             <Button
-              :disabled="!selectedRows.length"
+              :disabled="!session.selectedFrames.length"
               class="mx-2"
               @click="e => $refs.split.toggle(e)"
             >
-              Split
+              <i class="mr-2 pi pi-clone" /> Split
             </Button>
             <Button
-              :disabled="!selectedRows.length"
+              :disabled="!session.selectedFrames.length"
               class="mx-2"
-              @click="hideSelection"
+              @click="session.hideSelection"
             >
-              Hide
+              <i class="mr-2 pi pi-eye-slash" /> Hide
             </Button>
           </template>
 
@@ -318,11 +290,11 @@ ws.connect()
           </template>
 
           <Button
-            v-if="hiddenFrames.length"
+            v-if="session.hiddenFrames.length"
             class="mx-2 p-button-outlined"
-            @click="unhideAll"
+            @click="session.unhideAll"
           >
-            Unhide All
+            <i class="mr-2 pi pi-eye" /> Unhide All
           </Button>
 
           <Button
@@ -330,17 +302,27 @@ ws.connect()
             class="mx-2 p-button-outlined"
             @click="toggleSelectionMode"
           >
-            {{ selectionMode ? 'Cancel' : 'Selection Mode' }}
+            {{ session.selectionMode ? 'Cancel' : 'Selection Mode' }}
           </Button>
 
+          <EditFrame v-if="!session.selectionMode" />
+
           <!-- <Button
-            v-if="!selectionMode"
+            v-if="!session.selectionMode"
             class="mx-2 p-button-outlined"
             @click="toggleReorderMode"
           >
             {{ reorderMode ? 'Cancel' : 'Reorder Mode' }}
           </Button> -->
         </div>
+
+        <Sidebar v-model:visible="showFullscreenGraph" position="full">
+          <ComplexGraph
+            v-if="showFullscreenGraph"
+            :graph="session.selectedGraph"
+            fullscreen
+          />
+        </Sidebar>
       </template>
     </div>
   </div>
