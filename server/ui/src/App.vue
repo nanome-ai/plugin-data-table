@@ -61,7 +61,7 @@ html {
 }
 
 .p-sidebar-content {
-  position: unset;
+  position: unset !important;
   height: 100%;
 }
 

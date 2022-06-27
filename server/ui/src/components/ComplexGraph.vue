@@ -187,10 +187,13 @@ const roundValue = value => {
 
 <template>
   <div
-    :class="fullscreen ? 'align-items-center' : 'flex-column'"
+    :class="fullscreen ? 'h-full flex-center' : 'flex-column'"
     class="flex gap-5"
   >
-    <div class="flex-grow-1">
+    <div
+      class="flex-grow-1"
+      :style="graph.type === 'radar' ? 'max-width: calc(100vh - 80px)' : ''"
+    >
       <Chart
         v-if="chartData"
         ref="chart"
