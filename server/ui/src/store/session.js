@@ -33,6 +33,9 @@ const setupEventListeners = (store, ws) => {
         if (columnTypes[key] === 'text') return
         const type = isNaN(value) ? 'text' : 'numeric'
         columnTypes[key] = type
+        if (type === 'numeric') {
+          o[key] = +value
+        }
       })
     })
 
@@ -41,7 +44,7 @@ const setupEventListeners = (store, ws) => {
       // hide columns that have > 30 char data
       frames.forEach(o => {
         Object.entries(o).forEach(([key, value]) => {
-          if (value.length < 30) return
+          if (columnTypes[key] === 'numeric' || value.length < 30) return
           const index = selectedColumns.indexOf(key)
           if (index !== -1) selectedColumns.splice(index, 1)
         })
