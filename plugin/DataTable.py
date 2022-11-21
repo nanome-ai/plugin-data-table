@@ -282,6 +282,10 @@ class DataTable(nanome.AsyncPluginInstance):
         await self.update_complex()
 
     async def update_complex(self):
+        complexes = await self.request_complex_list()
+        complex = next(c for c in complexes if c.index == self.selected_complex.index)
+        self.selected_complex.position = complex.position
+        self.selected_complex.rotation = complex.rotation
         self.ignore_next_update += 1
         await self.update_structures_deep([self.selected_complex])
 
