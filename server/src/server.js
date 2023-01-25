@@ -6,9 +6,13 @@ const app = require('./app')
 const ws = require('./ws')
 ws.init()
 
+
+http_port = process.env.HTTP_PORT || 80
+https_port = process.env.HTTPS_PORT || 443
+
 const httpServer = http.createServer(app)
 httpServer.on('upgrade', ws.onUpgrade)
-httpServer.listen(80)
+httpServer.listen(http_port)
 
 const options = {
   key: fs.readFileSync('./certs/local.key'),
@@ -16,4 +20,4 @@ const options = {
 }
 const httpsServer = https.createServer(options, app)
 httpsServer.on('upgrade', ws.onUpgrade)
-httpsServer.listen(443)
+httpsServer.listen(https_port)
