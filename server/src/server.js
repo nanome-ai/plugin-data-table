@@ -7,8 +7,8 @@ const ws = require('./ws')
 ws.init()
 
 
-http_port = process.env.HTTP_PORT || 80
-https_port = process.env.HTTPS_PORT || 443
+const http_port = process.env.HTTP_PORT || 80
+const https_port = process.env.HTTPS_PORT || 443
 
 const httpServer = http.createServer(app)
 httpServer.on('upgrade', ws.onUpgrade)
