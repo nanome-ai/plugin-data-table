@@ -143,7 +143,7 @@ class DataTable(nanome.AsyncPluginInstance):
         items = [{'name': c.full_name, 'index': c.index} for c in complexes]
         await self.ws_send('complexes', items)
 
-    def on_complex_list_updated(self):
+    def on_complex_list_changed(self):
         self.update_complexes()
 
     @async_callback
