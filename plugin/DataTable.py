@@ -2,40 +2,19 @@ import nanome
 from nanome.api.structure import Complex
 from nanome.util import async_callback, Logs
 
-from cairosvg import svg2png
 from rdkit import Chem
-from rdkit.Chem import AllChem, Draw
-import rdkit.Chem.Descriptors as Desc
-import rdkit.Chem.rdMolDescriptors as mDesc
 
 import argparse
 import asyncio
-import base64
 import json
 import os
 import random
 import string
 import tempfile
-import urllib
+import urllib.request
 import websockets
-from collections import namedtuple
 
-# mol 2d image drawing options
-Draw.DrawingOptions.atomLabelFontSize = 40
-Draw.DrawingOptions.dotsPerAngstrom = 100
-Draw.DrawingOptions.bondLineWidth = 8
-
-
-Property = namedtuple('Property', ['name', 'format', 'fn'])
-RDKIT_PROPERTIES = [
-    Property('MW', '%.3f', Desc.MolWt),
-    Property('logP', '%.3f', lambda mol: mDesc.CalcCrippenDescriptors(mol)[0]),
-    Property('TPSA', '%.3f', mDesc.CalcTPSA),
-    Property('HBA', '%d', mDesc.CalcNumHBA),
-    Property('HBD', '%d', mDesc.CalcNumHBD),
-    Property('RB', '%d', mDesc.CalcNumRotatableBonds),
-    Property('AR', '%d', mDesc.CalcNumAromaticRings)
-]
+from .PropertiesHelper import PropertiesHelper
 
 
 class DataTable(nanome.AsyncPluginInstance):
@@ -44,6 +23,8 @@ class DataTable(nanome.AsyncPluginInstance):
     async def start(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.temp_sdf = tempfile.NamedTemporaryFile(delete=False, suffix='.sdf', dir=self.temp_dir.name)
+
+        self.helper = PropertiesHelper(self.temp_dir)
 
         self.url, self.https = self.custom_data
         self.ws = None
@@ -134,6 +115,7 @@ class DataTable(nanome.AsyncPluginInstance):
 
     @async_callback
     async def on_stop(self):
+        del self.helper
         if self.ws:
             await self.ws.close()
 
@@ -207,7 +189,7 @@ class DataTable(nanome.AsyncPluginInstance):
 
         if update:
             await self.update_complex()
-            await self.update_table()
+            await self.update_table(False)
 
     async def delete_frames(self, indices):
         indices = sorted(indices, reverse=True)
@@ -289,7 +271,7 @@ class DataTable(nanome.AsyncPluginInstance):
         self.ignore_next_update += 1
         await self.update_structures_deep([self.selected_complex])
 
-    async def update_table(self):
+    async def update_table(self, update_images=True):
         frame = self.get_selected_frame(self.selected_complex)
 
         complex = self.selected_complex.convert_to_frames()
@@ -302,7 +284,9 @@ class DataTable(nanome.AsyncPluginInstance):
 
         await self.ws_send('frames', frames)
         await self.ws_send('select-frame', frame)
-        await self.generate_images(complex)
+
+        if update_images:
+            await self.update_images(complex)
 
     async def calculate_properties(self):
         try:
@@ -312,24 +296,24 @@ class DataTable(nanome.AsyncPluginInstance):
             return
 
         properties = {}
-        for property in RDKIT_PROPERTIES:
-            properties[property.name] = [''] * len(supplier)
+        for name in self.helper.property_names:
+            properties[name] = [''] * len(supplier)
 
         for i, mol in enumerate(supplier):
             if mol is None:
                 continue
 
-            for property in RDKIT_PROPERTIES:
-                value = property.format % property.fn(mol)
-                properties[property.name][i] = value
+            mol_properties = self.helper.calculate_properties(mol)
+            for name in self.helper.property_names:
+                properties[name][i] = mol_properties[name]
 
-        for property in RDKIT_PROPERTIES:
-            await self.add_column({'name': property.name, 'values': properties[property.name]}, False)
+        for name in self.helper.property_names:
+            await self.add_column({'name': name, 'values': properties[name]}, False)
 
         await self.update_complex()
-        await self.update_table()
+        await self.update_table(False)
 
-    async def generate_images(self, complex, frame=None):
+    async def update_images(self, complex):
         try:
             complex.io.to_sdf(self.temp_sdf.name)
             supplier = Chem.SDMolSupplier(self.temp_sdf.name)
@@ -339,35 +323,13 @@ class DataTable(nanome.AsyncPluginInstance):
         if len(supplier) == 0:
             return
 
-        frames = [frame] if frame is not None else range(len(supplier))
-
-        for i in frames:
+        for i in range(len(supplier)):
             mol = supplier[i]
             if mol is None:
                 continue
 
-            Chem.AssignStereochemistryFrom3D(mol)
-            AllChem.Compute2DCoords(mol)
-            mol = Draw.rdMolDraw2D.PrepareMolForDrawing(mol)
-
-            width, height = 256, 192
-            drawer = Draw.rdMolDraw2D.MolDraw2DSVG(width, height)
-            drawer.drawOptions().additionalAtomLabelPadding = 0.3
-            drawer.DrawMolecule(mol)
-            drawer.FinishDrawing()
-            svg = drawer.GetDrawingText()
-            svg = svg.replace('stroke-linecap:butt', 'stroke-linecap:round')
-
             id = f'{complex.index}-{i}'
-            path = os.path.join(self.temp_dir.name, f'{id}.png')
-            svg2png(bytestring=svg, write_to=path, output_width=width, output_height=height)
-
-            await self.send_image(id)
-
-    async def send_image(self, id):
-        path = os.path.join(self.temp_dir.name, f'{id}.png')
-        with open(path, 'rb') as f:
-            data = base64.b64encode(f.read()).decode('utf-8')
+            data = self.helper.render_image(mol)
             await self.ws_send('image', {'id': id, 'data': data})
 
 
