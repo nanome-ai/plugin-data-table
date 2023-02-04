@@ -21,6 +21,7 @@ import Divider from 'primevue/divider'
 import Dropdown from 'primevue/dropdown'
 import Image from 'primevue/image'
 import InputNumber from 'primevue/inputnumber'
+import InputSwitch from 'primevue/inputswitch'
 import InputText from 'primevue/inputtext'
 import Menu from 'primevue/menu'
 import MultiSelect from 'primevue/multiselect'
@@ -52,6 +53,7 @@ app.component('Divider', Divider)
 app.component('Dropdown', Dropdown)
 app.component('Image', Image)
 app.component('InputNumber', InputNumber)
+app.component('InputSwitch', InputSwitch)
 app.component('InputText', InputText)
 app.component('Menu', Menu)
 app.component('MultiSelect', MultiSelect)

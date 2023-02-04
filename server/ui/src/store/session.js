@@ -115,6 +115,7 @@ export const useSessionStore = defineStore('session', {
     graphs: [createGraph()],
     hiddenFrames: [],
     images: {},
+    largeThumbnails: false,
     loading: false,
     nameColumn: null,
     selectedColumns: [],

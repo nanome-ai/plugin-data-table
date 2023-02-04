@@ -136,8 +136,8 @@ session.connect(props.id)
               />
 
               <OverlayPanel ref="settings">
-                <div class="mt-3 flex flex-column gap-5">
-                  <span class="p-float-label">
+                <div class="mt-1 flex flex-column gap-3">
+                  <span class="mt-3 p-float-label">
                     <MultiSelect
                       v-model="session.selectedColumns"
                       :options="session.columns"
@@ -149,7 +149,7 @@ session.connect(props.id)
                     <label>Show Columns</label>
                   </span>
 
-                  <span class="p-float-label">
+                  <span class="mt-3 p-float-label">
                     <Dropdown
                       v-model="session.nameColumn"
                       :options="session.columns"
@@ -158,6 +158,12 @@ session.connect(props.id)
                     />
                     <label>Name Column</label>
                   </span>
+
+                  <label class="flex align-items-center">
+                    <i class="mr-2 pi pi-eye" />
+                    <span class="mr-auto">Large Thumbnails</span>
+                    <InputSwitch v-model="session.largeThumbnails" />
+                  </label>
 
                   <Button
                     v-tooltip.bottom="'using RDKit'"

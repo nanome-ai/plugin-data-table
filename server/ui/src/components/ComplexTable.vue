@@ -173,10 +173,14 @@ const resetFilter = filter => {
           <Image
             v-if="session.getImage(data.index)"
             :src="session.getImage(data.index)"
-            image-class="h-4rem"
+            :image-class="session.largeThumbnails ? 'h-8rem' : 'h-4rem'"
             preview
           />
-          <div v-else class="h-4rem inline-flex align-items-center">
+          <div
+            v-else
+            :class="session.largeThumbnails ? 'h-8rem' : 'h-4rem'"
+            class="inline-flex align-items-center"
+          >
             <i class="pi pi-exclamation-triangle text-500 text-5xl" />
           </div>
         </template>
