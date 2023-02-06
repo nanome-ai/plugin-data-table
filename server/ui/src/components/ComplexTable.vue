@@ -16,8 +16,7 @@ const OPERATOR_MAP = {
 }
 
 const props = defineProps({
-  multiSelect: Boolean,
-  reorderable: Boolean
+  multiSelect: Boolean
 })
 
 const session = useSessionStore()
@@ -91,11 +90,6 @@ const onColumnReorder = (...args) => {
   console.log('onColumnReorder', ...args)
 }
 
-const onRowReorder = e => {
-  sortField.value = null
-  data.value = e.value
-}
-
 const onRowSelect = e => {
   if (props.multiSelect) return
   session.selectFrame(e.data.index)
@@ -126,7 +120,6 @@ const resetFilter = filter => {
       reorderable-columns
       removable-sort
       @column-reorder="onColumnReorder"
-      @row-reorder="onRowReorder"
       @row-select="onRowSelect"
     >
       <template #header>
@@ -150,12 +143,6 @@ const resetFilter = filter => {
       <template #empty><div class="p-4">No entries</div></template>
       <template #loading><div class="p-4">Loading...</div></template>
 
-      <Column
-        v-if="props.reorderable"
-        :reorderable-column="false"
-        header-class="w-3rem"
-        row-reorder
-      />
       <Column
         v-if="props.multiSelect"
         selection-mode="multiple"

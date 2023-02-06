@@ -14,7 +14,6 @@ export const EVENT = {
   FRAMES: 'frames',
   IMAGE: 'image',
   JOIN: 'join',
-  REORDER_FRAMES: 'reorder-frames',
   SELECT_COMPLEX: 'select-complex',
   SELECT_FRAME: 'select-frame',
   SPLIT_FRAMES: 'split-frames',

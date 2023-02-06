@@ -18,7 +18,6 @@ const session = useSessionStore()
 const confirm = useConfirm()
 
 const settings = ref(null)
-const reorderMode = ref(false)
 const showGraphs = ref(false)
 
 const showFullscreenGraph = computed({
@@ -27,25 +26,6 @@ const showFullscreenGraph = computed({
     if (!value) session.selectGraph(null)
   }
 })
-
-// const oldData = ref([])
-
-// const saveReorder = () => {
-//   loading.value = true
-//   oldData.value = [...data.value]
-//   const ids = data.value.map(f => f.index)
-//   ws.send(EVENT.REORDER_FRAMES, ids)
-//   reorderMode.value = false
-// }
-
-// const toggleReorderMode = () => {
-//   reorderMode.value = !reorderMode.value
-//   if (reorderMode.value) {
-//     oldData.value = [...data.value]
-//   } else {
-//     data.value = [...oldData.value]
-//   }
-// }
 
 const toggleSelectionMode = () => {
   session.selectionMode = !session.selectionMode
@@ -190,7 +170,6 @@ session.connect(props.id)
             <ComplexTable
               class="flex-grow-1"
               :multi-select="session.selectionMode"
-              :reorderable="reorderMode"
             />
           </div>
 
@@ -291,10 +270,6 @@ session.connect(props.id)
             </Button>
           </template>
 
-          <template v-else-if="reorderMode">
-            <Button class="mx-2" @click="saveReorder"> Save </Button>
-          </template>
-
           <Button
             v-if="session.hiddenFrames.length"
             class="mx-2 p-button-outlined"
@@ -303,23 +278,11 @@ session.connect(props.id)
             <i class="mr-2 pi pi-eye" /> Unhide All
           </Button>
 
-          <Button
-            v-if="!reorderMode"
-            class="mx-2 p-button-outlined"
-            @click="toggleSelectionMode"
-          >
+          <Button class="mx-2 p-button-outlined" @click="toggleSelectionMode">
             {{ session.selectionMode ? 'Cancel' : 'Selection Mode' }}
           </Button>
 
           <EditFrame v-if="!session.selectionMode" />
-
-          <!-- <Button
-            v-if="!session.selectionMode"
-            class="mx-2 p-button-outlined"
-            @click="toggleReorderMode"
-          >
-            {{ reorderMode ? 'Cancel' : 'Reorder Mode' }}
-          </Button> -->
         </div>
 
         <Sidebar v-model:visible="showFullscreenGraph" position="full">

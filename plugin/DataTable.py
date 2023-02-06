@@ -96,8 +96,6 @@ class DataTable(nanome.AsyncPluginInstance):
                 await self.calculate_properties()
             elif type == 'delete-frames':
                 await self.delete_frames(data)
-            elif type == 'reorder-frames':
-                await self.reorder_frames(data)
             elif type == 'select-complex':
                 await self.select_complex(data)
             elif type == 'select-frame':
@@ -200,23 +198,6 @@ class DataTable(nanome.AsyncPluginInstance):
         else:
             for index in indices:
                 del self.selected_complex._molecules[index]
-
-        await self.update_complex()
-        await self.update_table()
-
-    async def reorder_frames(self, indices):
-        if self.selected_is_conformer:
-            molecule = next(self.selected_complex.molecules)
-            num_frames = molecule.conformer_count
-            for i, index in enumerate(indices):
-                molecule.copy_conformer(index, num_frames + i)
-            for _ in range(num_frames):
-                molecule.delete_conformer(0)
-        else:
-            molecules = list(self.selected_complex.molecules)
-            self.selected_complex._molecules = [molecules[i] for i in indices]
-            for molecule in self.selected_complex.molecules:
-                molecule.index = -1
 
         await self.update_complex()
         await self.update_table()
