@@ -111,6 +111,7 @@ export const useSessionStore = defineStore('session', {
     columns: [],
     columnTypes: {},
     complexes: [],
+    fontSize: '16px',
     frames: [],
     graphs: [createGraph()],
     hiddenFrames: [],

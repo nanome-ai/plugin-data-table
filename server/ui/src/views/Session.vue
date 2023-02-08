@@ -142,7 +142,7 @@ session.connect(props.id)
                       v-model="session.selectedColumns"
                       :options="session.columns"
                       :max-selected-labels="0.1"
-                      class="w-15rem p-inputwrapper-filled"
+                      class="w-full p-inputwrapper-filled"
                       placeholder="toggle columns"
                       selected-items-label="toggle columns"
                     />
@@ -153,7 +153,7 @@ session.connect(props.id)
                     <Dropdown
                       v-model="session.nameColumn"
                       :options="session.columns"
-                      class="w-15rem p-inputwrapper-filled"
+                      class="w-full p-inputwrapper-filled"
                       placeholder="no name column"
                     />
                     <label>Name Column</label>
@@ -163,6 +163,22 @@ session.connect(props.id)
                     <i class="mr-2 pi pi-eye" />
                     <span class="mr-auto">Large Thumbnails</span>
                     <InputSwitch v-model="session.largeThumbnails" />
+                  </label>
+
+                  <label class="flex align-items-center">
+                    <i class="mr-2 pi pi-search-plus" />
+                    <span class="mr-auto">Font Size</span>
+                    <SelectButton
+                      class="ml-3"
+                      v-model="session.fontSize"
+                      :options="[
+                        { label: 'sm', value: '12px' },
+                        { label: 'md', value: '16px' },
+                        { label: 'lg', value: '24px' }
+                      ]"
+                      option-label="label"
+                      option-value="value"
+                    />
                   </label>
 
                   <Button

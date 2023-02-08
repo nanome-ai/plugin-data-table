@@ -26,6 +26,7 @@ import InputText from 'primevue/inputtext'
 import Menu from 'primevue/menu'
 import MultiSelect from 'primevue/multiselect'
 import OverlayPanel from 'primevue/overlaypanel'
+import SelectButton from 'primevue/selectbutton'
 import Sidebar from 'primevue/sidebar'
 import Skeleton from 'primevue/skeleton'
 import ToggleButton from 'primevue/togglebutton'
@@ -58,6 +59,7 @@ app.component('InputText', InputText)
 app.component('Menu', Menu)
 app.component('MultiSelect', MultiSelect)
 app.component('OverlayPanel', OverlayPanel)
+app.component('SelectButton', SelectButton)
 app.component('Sidebar', Sidebar)
 app.component('Skeleton', Skeleton)
 app.component('ToggleButton', ToggleButton)
