@@ -52,17 +52,17 @@ session.connect(props.id)
 
 <template>
   <IntroPanel
-    v-if="session.status === STATUS.ONLINE && !session.selectedComplex"
+    v-if="session.status === STATUS.ONLINE && !session.selectedComplexes.length"
   >
     <div class="mb-3 text-xl">Select an entry to begin</div>
-    <Dropdown
-      v-model="session.selectedComplex"
+    <MultiSelect
+      v-model="session.selectedComplexes"
       :options="session.complexes"
       class="w-full"
       option-label="name"
       option-value="index"
       placeholder="click here"
-      @change="({ value }) => session.selectComplex(value)"
+      @change="({ value }) => session.selectComplexes(value)"
     />
   </IntroPanel>
 
@@ -94,16 +94,16 @@ session.connect(props.id)
           <div class="flex flex-column min-w-0">
             <div class="mt-2 flex justify-content-center gap-2">
               <span class="p-float-label">
-                <Dropdown
-                  v-model="session.selectedComplex"
+                <MultiSelect
+                  v-model="session.selectedComplexes"
                   :options="session.complexes"
                   class="w-15rem p-inputwrapper-filled"
                   option-label="name"
                   option-value="index"
                   placeholder="select an entry"
-                  @change="({ value }) => session.selectComplex(value)"
+                  @change="({ value }) => session.selectComplexes(value)"
                 />
-                <label>Entry</label>
+                <label>Entries</label>
               </span>
 
               <NewColumn />

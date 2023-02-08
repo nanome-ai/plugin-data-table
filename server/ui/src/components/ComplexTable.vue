@@ -42,7 +42,7 @@ const filteredColumns = computed(() => {
 })
 
 const filteredRows = computed(() => {
-  return session.frames.filter(f => !session.hiddenFrames.includes(f.index))
+  return session.frames.filter(f => !session.hiddenFrames.includes(f.id))
 })
 
 const filters = ref({})
@@ -92,7 +92,7 @@ const onColumnReorder = (...args) => {
 
 const onRowSelect = e => {
   if (props.multiSelect) return
-  session.selectFrame(e.data.index)
+  session.selectFrame(e.data.id)
 }
 
 const resetFilter = filter => {
@@ -115,7 +115,7 @@ const resetFilter = filter => {
       :meta-key-selection="false"
       :selection-mode="props.multiSelect ? 'multiple' : 'single'"
       :value="filteredRows"
-      data-key="index"
+      data-key="id"
       filter-display="menu"
       reorderable-columns
       removable-sort
@@ -152,14 +152,19 @@ const resetFilter = filter => {
           <Checkbox v-model="selection" :value="data" @click.stop />
         </template>
       </Column>
-      <Column field="index" header="Frame" body-class="text-center" sortable>
-        <template #body="{ data }">{{ data.index + 1 }}</template>
+      <Column
+        field="frame"
+        header="Frame"
+        body-class="text-center white-space-nowrap"
+        sortable
+      >
+        <template #body="{ data }">{{ data.frame }}</template>
       </Column>
       <Column field="image" header="Image" body-class="py-0 text-center">
         <template #body="{ data }">
           <Image
-            v-if="session.getImage(data.index)"
-            :src="session.getImage(data.index)"
+            v-if="session.getImage(data.id)"
+            :src="session.getImage(data.id)"
             :image-class="session.largeThumbnails ? 'h-8rem' : 'h-4rem'"
             preview
           />

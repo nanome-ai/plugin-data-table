@@ -49,7 +49,7 @@ const tooltipHandler = ctx => {
 
   const total = ctx.tooltip.dataPoints.length
   const selectedIndex = ctx.tooltip.dataPoints.findIndex(d => {
-    return d.raw.index === session.selectedFrame.index
+    return d.raw.id === session.selectedFrame?.id
   })
 
   if (total > 0) {
@@ -58,12 +58,12 @@ const tooltipHandler = ctx => {
     }
 
     const nextIndex = (selectedIndex + 1) % total
-    tooltip.nextSelection = ctx.tooltip.dataPoints[nextIndex].raw.index
+    tooltip.nextSelection = ctx.tooltip.dataPoints[nextIndex].raw.id
   }
 
   const start = Math.floor((selectedIndex === -1 ? 0 : selectedIndex) / 3)
   let items = ctx.tooltip.dataPoints.slice(start * 3, start * 3 + 3).map(d => {
-    return session.frames.find(f => f.index === d.raw.index)
+    return session.frames.find(f => f.id === d.raw.id)
   })
 
   tooltip.items = items
@@ -72,8 +72,8 @@ const tooltipHandler = ctx => {
 }
 
 const isSelected = ctx => {
-  const index = ctx.raw ? ctx.raw.index : ctx.dataset.data[0].index
-  const frame = session.frames.find(f => f.index === index)
+  const id = ctx.raw ? ctx.raw.id : ctx.dataset.data[0].id
+  const frame = session.frames.find(f => f.id === id)
   return session.selectedFrame === frame
 }
 
@@ -165,11 +165,11 @@ const cycleSelection = () => {
 
 const syncSelectionWithTable = to => {
   if (to) {
-    const indices = graph.value.frames
-    session.selectedFrames = indices.map(i => session.frames[i])
+    const ids = graph.value.frames
+    session.selectedFrames = ids.map(id => session.find(f => f.id === id))
   } else {
-    const indices = session.selectedFrames.map(f => session.frames.indexOf(f))
-    graph.value.frames = indices
+    const ids = session.selectedFrames.map(f => f.id)
+    graph.value.frames = ids
   }
   session.selectionMode = true
 }
@@ -277,8 +277,8 @@ const roundValue = value => {
             v-model="graph.frames"
             :max-selected-labels="-1"
             :options="session.frames"
-            :option-label="f => `${f.index + 1} - ${f[session.nameColumn]}`"
-            option-value="index"
+            option-label="frame"
+            option-value="id"
             class="w-full p-inputwrapper-filled"
             placeholder="all frames"
             selected-items-label="{0} frames"
@@ -336,8 +336,8 @@ const roundValue = value => {
             v-model="graph.frames"
             :max-selected-labels="-1"
             :options="session.frames"
-            :option-label="f => `${f.index + 1} - ${f[session.nameColumn]}`"
-            option-value="index"
+            option-label="frame"
+            option-value="id"
             class="w-full p-inputwrapper-filled"
             placeholder="all frames"
             selected-items-label="{0} frames"
@@ -440,22 +440,22 @@ const roundValue = value => {
 
     <div
       v-for="item in tooltip.items"
-      :key="item.index"
+      :key="item.id"
       :style="{
         background: session.selectedFrame === item ? '#fff2' : '#0000'
       }"
       class="p-2 text-center"
     >
       <img
-        v-if="session.getImage(item.index)"
-        :src="session.getImage(item.index)"
+        v-if="session.getImage(item.id)"
+        :src="session.getImage(item.id)"
         class="h-4rem"
       />
       <div v-else class="h-4rem inline-flex align-items-center">
         <i class="pi pi-exclamation-triangle text-500 text-5xl" />
       </div>
       <div class="text-xs">
-        {{ item.index + 1 }} - {{ item[session.nameColumn] }}
+        {{ item.frame }}
       </div>
     </div>
 

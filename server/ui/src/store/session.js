@@ -23,7 +23,7 @@ const setupEventListeners = (store, ws) => {
 
     // get unique column names
     const columnSet = new Set([].concat(...frames.map(o => Object.keys(o))))
-    columnSet.delete('index')
+    ;['id', 'index', 'frame'].forEach(c => columnSet.delete(c))
     const columns = Array.from(columnSet)
 
     // guess types of columns based on data
@@ -44,7 +44,12 @@ const setupEventListeners = (store, ws) => {
       // hide columns that have > 30 char data
       frames.forEach(o => {
         Object.entries(o).forEach(([key, value]) => {
-          if (columnTypes[key] === 'numeric' || value.length < 30) return
+          const hide =
+            key.length > 10 ||
+            columnTypes[key] !== 'numeric' ||
+            value.length > 30
+          if (!hide) return
+
           const index = selectedColumns.indexOf(key)
           if (index !== -1) selectedColumns.splice(index, 1)
         })
@@ -65,13 +70,13 @@ const setupEventListeners = (store, ws) => {
     store.images[id] = data
   })
 
-  ws.on(EVENT.SELECT_COMPLEX, index => {
-    store.selectedComplex = index
+  ws.on(EVENT.SELECT_COMPLEXES, indices => {
+    store.selectedComplexes = indices
     store.selectedColumns = []
   })
 
-  ws.on(EVENT.SELECT_FRAME, index => {
-    store.selectFrame(index, false)
+  ws.on(EVENT.SELECT_FRAME, id => {
+    store.selectFrame(id, false)
   })
 
   ws.on(EVENT.UPDATE_FRAME, data => {
@@ -119,7 +124,7 @@ export const useSessionStore = defineStore('session', {
     loading: false,
     nameColumn: null,
     selectedColumns: [],
-    selectedComplex: null,
+    selectedComplexes: [],
     selectedFrame: null,
     selectedFrames: [],
     selectedGraph: null,
@@ -134,10 +139,9 @@ export const useSessionStore = defineStore('session', {
     },
 
     getImage() {
-      const complexId = this.selectedComplex
       const prefix = 'data:image/png;base64,'
       return id => {
-        const image = this.images[`${complexId}-${id}`]
+        const image = this.images[id]
         if (!image) return null
         return prefix + image
       }
@@ -152,8 +156,8 @@ export const useSessionStore = defineStore('session', {
       return this.columns.filter(c => this.columnTypes[c] === 'numeric')
     },
 
-    selectedFrameIndices() {
-      return this.selectedFrames.map(f => f.index)
+    selectedFrameIds() {
+      return this.selectedFrames.map(f => f.id)
     }
   },
 
@@ -189,7 +193,7 @@ export const useSessionStore = defineStore('session', {
     addGraph(selectedOnly) {
       const graph = createGraph()
       if (selectedOnly) {
-        graph.frames = this.selectedFrameIndices
+        graph.frames = this.selectedFrameIds
       }
       this.graphs.push(graph)
     },
@@ -209,30 +213,30 @@ export const useSessionStore = defineStore('session', {
     // #region selection
     deleteSelection() {
       this.loading = true
-      this.ws.send(EVENT.DELETE_FRAMES, this.selectedFrameIndices)
+      this.ws.send(EVENT.DELETE_FRAMES, this.selectedFrameIds)
       this.selectedFrames = []
     },
 
     hideSelection() {
-      this.hiddenFrames.push(...this.selectedFrameIndices)
+      this.hiddenFrames.push(...this.selectedFrameIds)
       this.selectedFrames = []
     },
 
-    selectComplex(index) {
+    selectComplexes(indices) {
       this.frames = []
       this.selectedFrame = null
-      this.ws.send(EVENT.SELECT_COMPLEX, index)
+      this.ws.send(EVENT.SELECT_COMPLEXES, indices)
     },
 
-    selectFrame(index, send = true) {
-      this.selectedFrame = this.frames.find(f => f.index === index)
-      if (send) this.ws.send(EVENT.SELECT_FRAME, index)
+    selectFrame(id, send = true) {
+      this.selectedFrame = this.frames.find(f => f.id === id)
+      if (send) this.ws.send(EVENT.SELECT_FRAME, id)
     },
 
     splitSelection(single, remove) {
       this.loading = remove
       this.ws.send(EVENT.SPLIT_FRAMES, {
-        indices: this.selectedFrameIndices,
+        ids: this.selectedFrameIds,
         name_column: this.nameColumn,
         single,
         remove
@@ -241,7 +245,7 @@ export const useSessionStore = defineStore('session', {
     },
 
     updateFrame(data, send = true) {
-      const frame = this.frames.find(f => f.index === data.index)
+      const frame = this.frames.find(f => f.id === data.id)
       if (!frame) return
       Object.assign(frame, data)
       if (send) this.ws.send(EVENT.UPDATE_FRAME, data)

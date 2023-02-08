@@ -79,7 +79,7 @@ const onMessage = ws => e => {
     case 'split-frames':
       send_plugin(ws, type, data)
       break
-    case 'select-complex':
+    case 'select-complexes':
     case 'select-frame':
     case 'update-frame':
       broadcast(ws, type, data)

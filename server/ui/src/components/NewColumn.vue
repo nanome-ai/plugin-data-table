@@ -40,17 +40,14 @@ const canAdd = computed(() => {
 })
 
 const addColumn = () => {
-  const values = Array.from({ length: session.frames.length }, () => '')
-  for (let i = 0; i < session.frames.length; i++) {
-    const f = session.frames[i]
+  const values = {}
+  for (const f of session.frames) {
     const a = data.isOperand1Column ? f[data.column1] : data.value1
     const b = data.isOperand2Column ? f[data.column2] : data.value2
-    values[i] = data.operator.fn(+a, +b)
-    if (isNaN(values[i])) {
-      values[i] = ''
-    } else {
-      values[i] = Math.round(values[i] * 1000) / 1000
-    }
+    let v = data.operator.fn(+a, +b)
+    if (isNaN(v)) v = ''
+    else v = Math.round(v * 1000) / 1000
+    values[f.id] = v
   }
 
   session.addColumn(data.name, values)
