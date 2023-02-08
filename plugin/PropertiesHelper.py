@@ -167,7 +167,7 @@ class PropertiesHelper:
         drawer = Draw.rdMolDraw2D.MolDraw2DSVG(width, height)
         options = drawer.drawOptions()
         Draw.rdMolDraw2D.SetDarkMode(options)
-        options.additionalAtomLabelPadding = 0.3
+        options.additionalAtomLabelPadding = 0.2
         options.clearBackground = False
         drawer.DrawMolecule(mol)
         drawer.FinishDrawing()
@@ -175,7 +175,7 @@ class PropertiesHelper:
         svg = svg.replace('stroke-linecap:butt', 'stroke-linecap:round')
 
         png = tempfile.NamedTemporaryFile(delete=False, suffix='.png', dir=self.temp_dir.name)
-        svg2png(bytestring=svg, write_to=png.name, output_width=width, output_height=height)
+        svg2png(bytestring=svg, write_to=png.name, output_width=width*2, output_height=height*2)
 
         with open(png.name, 'rb') as f:
             return base64.b64encode(f.read()).decode('utf-8')
