@@ -1,5 +1,7 @@
 import { createApp, markRaw } from 'vue'
 import { createPinia } from 'pinia'
+import piniaPersist from 'pinia-plugin-persist'
+
 import App from './App.vue'
 import PrimeVue from 'primevue/config'
 import ConfirmationService from 'primevue/confirmationservice'
@@ -37,6 +39,7 @@ Chart.defaults.color = '#ccc'
 
 const app = createApp(App)
 const pinia = createPinia()
+pinia.use(piniaPersist)
 pinia.use(({ store }) => {
   store.$router = markRaw(router)
   store.$toast = markRaw({

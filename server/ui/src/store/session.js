@@ -129,6 +129,17 @@ export const useSessionStore = defineStore('session', {
     ws: null
   }),
 
+  persist: {
+    enabled: true,
+    strategies: [
+      {
+        key: 'data-table-settings',
+        storage: localStorage,
+        paths: ['fontSize', 'largeThumbnails']
+      }
+    ]
+  },
+
   getters: {
     displayColumns() {
       return this.columns.filter(c => this.selectedColumns.includes(c))
