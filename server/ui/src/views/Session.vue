@@ -136,28 +136,50 @@ session.connect(props.id)
               />
 
               <OverlayPanel ref="settings">
-                <div class="mt-3 flex flex-column gap-5">
-                  <span class="p-float-label">
+                <div class="mt-1 flex flex-column gap-3">
+                  <span class="mt-3 p-float-label">
                     <MultiSelect
                       v-model="session.selectedColumns"
                       :options="session.columns"
                       :max-selected-labels="0.1"
-                      class="w-15rem p-inputwrapper-filled"
+                      class="w-full p-inputwrapper-filled"
                       placeholder="toggle columns"
                       selected-items-label="toggle columns"
                     />
                     <label>Show Columns</label>
                   </span>
 
-                  <span class="p-float-label">
+                  <span class="mt-3 p-float-label">
                     <Dropdown
                       v-model="session.nameColumn"
                       :options="session.columns"
-                      class="w-15rem p-inputwrapper-filled"
+                      class="w-full p-inputwrapper-filled"
                       placeholder="no name column"
                     />
                     <label>Name Column</label>
                   </span>
+
+                  <label class="flex align-items-center">
+                    <i class="mr-2 pi pi-eye" />
+                    <span class="mr-auto">Large Thumbnails</span>
+                    <InputSwitch v-model="session.largeThumbnails" />
+                  </label>
+
+                  <label class="flex align-items-center">
+                    <i class="mr-2 pi pi-search-plus" />
+                    <span class="mr-auto">Font Size</span>
+                    <SelectButton
+                      class="ml-3"
+                      v-model="session.fontSize"
+                      :options="[
+                        { label: 'sm', value: '12px' },
+                        { label: 'md', value: '16px' },
+                        { label: 'lg', value: '24px' }
+                      ]"
+                      option-label="label"
+                      option-value="value"
+                    />
+                  </label>
 
                   <Button
                     v-tooltip.bottom="'using RDKit'"

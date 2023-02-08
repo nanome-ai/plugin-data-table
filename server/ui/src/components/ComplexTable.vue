@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, toRef, watch } from 'vue'
 import { useSessionStore } from '../store/session'
 
 import { FilterMatchMode, FilterOperator } from 'primevue/api'
@@ -21,6 +21,7 @@ const props = defineProps({
 })
 
 const session = useSessionStore()
+const fontSize = toRef(session, 'fontSize')
 
 const sortField = ref(null)
 const selection = computed({
@@ -173,10 +174,14 @@ const resetFilter = filter => {
           <Image
             v-if="session.getImage(data.index)"
             :src="session.getImage(data.index)"
-            image-class="h-4rem"
+            :image-class="session.largeThumbnails ? 'h-8rem' : 'h-4rem'"
             preview
           />
-          <div v-else class="h-4rem inline-flex align-items-center">
+          <div
+            v-else
+            :class="session.largeThumbnails ? 'h-8rem' : 'h-4rem'"
+            class="inline-flex align-items-center"
+          >
             <i class="pi pi-exclamation-triangle text-500 text-5xl" />
           </div>
         </template>
@@ -217,7 +222,8 @@ const resetFilter = filter => {
   z-index: 1;
 }
 
-:deep(.p-datatable-tbody) {
+:deep(.p-datatable-table) {
+  font-size: v-bind(fontSize);
   user-select: none;
 }
 </style>
