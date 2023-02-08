@@ -90,7 +90,9 @@ class PropertiesHelper:
 
     def fetch_property(self, endpoint, prop, mol):
         name = endpoint['name']
-        cache = self.api_cache.get(name)
+        smiles = Chem.MolToSmiles(mol)
+        cache_id = f'{name}:{smiles}'
+        cache = self.api_cache.get(cache_id)
 
         if cache is None or datetime.now() - cache['time'] > API_CACHE_TIME:
             url = endpoint['url']
@@ -99,12 +101,10 @@ class PropertiesHelper:
 
             try:
                 if data == 'smiles' and method == 'GET':
-                    smiles = Chem.MolToSmiles(mol)
                     url = url.replace(':smiles', quote(smiles))
                     json = requests.get(url).json()
 
                 elif data == 'smiles' and method == 'POST':
-                    smiles = Chem.MolToSmiles(mol)
                     payload = endpoint['payload'].replace(':smiles', smiles)
                     headers = {'Content-Type': 'application/json'}
                     json = requests.post(url, headers=headers, data=payload).json()
@@ -146,7 +146,7 @@ class PropertiesHelper:
                     Logs.error(f'Invalid path for {item} on {name}')
 
             cache = { 'time': datetime.now(), 'data': data }
-            self.api_cache[name] = cache
+            self.api_cache[cache_id] = cache
 
         return cache['data'][prop]
 
@@ -167,7 +167,7 @@ class PropertiesHelper:
         drawer = Draw.rdMolDraw2D.MolDraw2DSVG(width, height)
         options = drawer.drawOptions()
         Draw.rdMolDraw2D.SetDarkMode(options)
-        options.additionalAtomLabelPadding = 0.3
+        options.additionalAtomLabelPadding = 0.2
         options.clearBackground = False
         drawer.DrawMolecule(mol)
         drawer.FinishDrawing()
@@ -175,7 +175,7 @@ class PropertiesHelper:
         svg = svg.replace('stroke-linecap:butt', 'stroke-linecap:round')
 
         png = tempfile.NamedTemporaryFile(delete=False, suffix='.png', dir=self.temp_dir.name)
-        svg2png(bytestring=svg, write_to=png.name, output_width=width, output_height=height)
+        svg2png(bytestring=svg, write_to=png.name, output_width=width*2, output_height=height*2)
 
         with open(png.name, 'rb') as f:
             return base64.b64encode(f.read()).decode('utf-8')

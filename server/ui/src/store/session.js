@@ -116,6 +116,7 @@ export const useSessionStore = defineStore('session', {
     columns: [],
     columnTypes: {},
     complexes: [],
+    fontSize: '16px',
     frames: [],
     graphs: [createGraph()],
     hiddenFrames: [],
@@ -132,6 +133,17 @@ export const useSessionStore = defineStore('session', {
     status: STATUS.OFFLINE,
     ws: null
   }),
+
+  persist: {
+    enabled: true,
+    strategies: [
+      {
+        key: 'data-table-settings',
+        storage: localStorage,
+        paths: ['fontSize', 'largeThumbnails']
+      }
+    ]
+  },
 
   getters: {
     displayColumns() {

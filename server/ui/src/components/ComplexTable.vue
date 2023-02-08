@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, toRef, watch } from 'vue'
 import { useSessionStore } from '../store/session'
 
 import { FilterMatchMode, FilterOperator } from 'primevue/api'
@@ -20,6 +20,7 @@ const props = defineProps({
 })
 
 const session = useSessionStore()
+const fontSize = toRef(session, 'fontSize')
 
 const sortField = ref(null)
 const selection = computed({
@@ -213,7 +214,8 @@ const resetFilter = filter => {
   z-index: 1;
 }
 
-:deep(.p-datatable-tbody) {
+:deep(.p-datatable-table) {
+  font-size: v-bind(fontSize);
   user-select: none;
 }
 </style>
