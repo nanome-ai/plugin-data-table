@@ -262,9 +262,10 @@ const roundValue = value => {
             v-model="graph.rColumns"
             :options="session.numericColumns"
             :max-selected-labels="0.1"
-            placeholder="select columns"
-            selected-items-label="{0} columns"
             class="w-full p-inputwrapper-filled"
+            placeholder="select columns"
+            scroll-height="500px"
+            selected-items-label="{0} columns"
           />
           <label>Axes</label>
         </span>
@@ -281,6 +282,7 @@ const roundValue = value => {
             option-value="id"
             class="w-full p-inputwrapper-filled"
             placeholder="all frames"
+            scroll-height="500px"
             selected-items-label="{0} frames"
           />
           <label>Frames</label>
@@ -340,6 +342,7 @@ const roundValue = value => {
             option-value="id"
             class="w-full p-inputwrapper-filled"
             placeholder="all frames"
+            scroll-height="500px"
             selected-items-label="{0} frames"
           />
           <label>Frames</label>
