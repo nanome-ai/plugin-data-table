@@ -36,16 +36,6 @@ const selection = computed({
   }
 })
 
-const filteredColumns = computed(() => {
-  const columns = session.displayColumns.filter(c => c !== session.nameColumn)
-  columns.unshift(session.nameColumn)
-  return columns
-})
-
-const filteredRows = computed(() => {
-  return session.frames.filter(f => !session.hiddenFrames.includes(f.id))
-})
-
 const filters = ref({})
 const activeFilters = ref([])
 
@@ -53,7 +43,7 @@ watch(
   filters,
   () => {
     activeFilters.value = []
-    filteredColumns.value.forEach(column => {
+    session.displayColumns.forEach(column => {
       const { constraints } = filters.value[column] || {}
       if (!constraints) return
 
@@ -115,7 +105,7 @@ const resetFilter = filter => {
       :loading="!session.frames.length || session.loading"
       :meta-key-selection="false"
       :selection-mode="props.multiSelect ? 'multiple' : 'single'"
-      :value="filteredRows"
+      :value="session.displayFrames"
       data-key="id"
       filter-display="menu"
       reorderable-columns
@@ -179,7 +169,7 @@ const resetFilter = filter => {
         </template>
       </Column>
       <Column
-        v-for="col in filteredColumns"
+        v-for="col in session.displayColumns"
         :key="col"
         :field="col"
         :header="col"

@@ -147,7 +147,15 @@ export const useSessionStore = defineStore('session', {
 
   getters: {
     displayColumns() {
-      return this.columns.filter(c => this.selectedColumns.includes(c))
+      const columns = this.columns.filter(
+        c => this.selectedColumns.includes(c) && c !== this.nameColumn
+      )
+      columns.unshift(this.nameColumn)
+      return columns
+    },
+
+    displayFrames() {
+      return this.frames.filter(f => !this.hiddenFrames.includes(f.id))
     },
 
     getImage() {
