@@ -14,17 +14,17 @@ const setupEventListeners = (store, ws) => {
 
   ws.on(EVENT.FRAMES, frames => {
     // trim string columns
-    frames.forEach(o => {
-      Object.entries(o).forEach(([key, value]) => {
+    frames.forEach(f => {
+      Object.entries(f).forEach(([key, value]) => {
         if (typeof value !== 'string') return
-        o[key] = value.trim()
+        f[key] = value.trim()
       })
     })
 
     // get unique column names
     const columnSet = new Set([].concat(...frames.map(o => Object.keys(o))))
-    ;['id', 'index', 'frame'].forEach(c => columnSet.delete(c))
-    const columns = Array.from(columnSet)
+    ;['id', 'Index', 'frame'].forEach(c => columnSet.delete(c))
+    const columns = Array.from(columnSet).sort((a, b) => a.localeCompare(b))
 
     // guess types of columns based on data
     const columnTypes = {}
@@ -39,22 +39,26 @@ const setupEventListeners = (store, ws) => {
       })
     })
 
-    if (!store.selectedColumns.length) {
-      const selectedColumns = [...columns]
-      // hide columns that have > 30 char data
-      frames.forEach(o => {
-        Object.entries(o).forEach(([key, value]) => {
-          const hide =
-            key.length > 10 ||
-            columnTypes[key] !== 'numeric' ||
-            value.length > 30
-          if (!hide) return
+    const selectedColumns = [...columns]
+    // hide columns that have > 30 char data
+    frames.forEach(o => {
+      Object.entries(o).forEach(([key, value]) => {
+        const hide =
+          key.length > 10 || columnTypes[key] !== 'numeric' || value.length > 30
+        if (!hide) return
 
-          const index = selectedColumns.indexOf(key)
-          if (index !== -1) selectedColumns.splice(index, 1)
-        })
+        const index = selectedColumns.indexOf(key)
+        if (index !== -1) selectedColumns.splice(index, 1)
       })
-      store.selectedColumns = selectedColumns
+    })
+
+    for (const column of store.hideColumns) {
+      const index = selectedColumns.indexOf(column)
+      if (index !== -1) selectedColumns.splice(index, 1)
+    }
+
+    for (const column of store.showColumns) {
+      if (!selectedColumns.includes(column)) selectedColumns.push(column)
     }
 
     const name = columns.find(c => c.toLowerCase() === 'name')
@@ -63,6 +67,7 @@ const setupEventListeners = (store, ws) => {
     store.frames = frames
     store.columns = columns
     store.columnTypes = columnTypes
+    store.selectColumns(selectedColumns)
     store.loading = false
   })
 
@@ -120,10 +125,12 @@ export const useSessionStore = defineStore('session', {
     frames: [],
     graphs: [createGraph()],
     hiddenFrames: [],
+    hideColumns: [],
     images: {},
     largeThumbnails: false,
     loading: false,
     nameColumn: null,
+    showColumns: [],
     selectedColumns: [],
     selectedComplexes: [],
     selectedFrame: null,
@@ -140,7 +147,7 @@ export const useSessionStore = defineStore('session', {
       {
         key: 'data-table-settings',
         storage: localStorage,
-        paths: ['fontSize', 'largeThumbnails']
+        paths: ['fontSize', 'hideColumns', 'largeThumbnails', 'showColumns']
       }
     ]
   },
@@ -206,6 +213,21 @@ export const useSessionStore = defineStore('session', {
       this.selectedColumns.push('MW', 'logP', 'TPSA', 'HBA', 'HBD', 'RB', 'AR')
       this.loading = true
       this.ws.send(EVENT.CALCULATE_PROPERTIES)
+    },
+
+    selectColumns(columns) {
+      this.selectedColumns = columns
+      for (const column of this.columns) {
+        if (columns.includes(column)) {
+          const index = this.hideColumns.indexOf(column)
+          if (index !== -1) this.hideColumns.splice(index, 1)
+          if (!this.showColumns.includes(column)) this.showColumns.push(column)
+        } else {
+          const index = this.showColumns.indexOf(column)
+          if (index !== -1) this.showColumns.splice(index, 1)
+          if (!this.hideColumns.includes(column)) this.hideColumns.push(column)
+        }
+      }
     },
     // #endregion
 

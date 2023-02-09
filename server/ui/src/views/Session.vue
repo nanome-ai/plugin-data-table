@@ -63,7 +63,7 @@ session.connect(props.id)
       option-value="index"
       placeholder="click here"
       scroll-height="500px"
-      @change="({ value }) => session.selectComplexes(value)"
+      @change="e => session.selectComplexes(e.value)"
     />
   </IntroPanel>
 
@@ -103,7 +103,7 @@ session.connect(props.id)
                   option-value="index"
                   placeholder="select an entry"
                   scroll-height="500px"
-                  @change="({ value }) => session.selectComplexes(value)"
+                  @change="e => session.selectComplexes(e.value)"
                 />
                 <label>Entries</label>
               </span>
@@ -121,13 +121,14 @@ session.connect(props.id)
                 <div class="mt-1 flex flex-column gap-3">
                   <span class="mt-3 p-float-label">
                     <MultiSelect
-                      v-model="session.selectedColumns"
+                      :model-value="session.selectedColumns"
                       :options="session.columns"
                       :max-selected-labels="0.1"
                       class="w-full p-inputwrapper-filled"
                       placeholder="toggle columns"
                       scroll-height="500px"
                       selected-items-label="toggle columns"
+                      @change="e => session.selectColumns(e.value)"
                     />
                     <label>Show Columns</label>
                   </span>
