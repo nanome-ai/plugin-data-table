@@ -60,6 +60,10 @@ html {
   scrollbar-gutter: stable;
 }
 
+.p-confirm-popup-message {
+  white-space: pre-line;
+}
+
 .p-sidebar-content {
   position: unset !important;
   height: 100%;

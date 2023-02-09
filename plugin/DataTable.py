@@ -226,18 +226,40 @@ class DataTable(nanome.AsyncPluginInstance):
         indices = [self.get_complex_frame(id) for id in ids]
         indices = sorted(indices, key=lambda x: x[1], reverse=True)
         to_update = set()
+        to_remove = set()
 
         for complex, index in indices:
-            to_update.add(complex.index)
+            self.complex_num_frames[complex.index] -= 1
+
             if self.complex_is_conformer[complex.index]:
                 molecule = next(complex.molecules)
-                for index in indices:
-                    molecule.delete_conformer(index)
+                molecule.delete_conformer(index)
             else:
-                for index in indices:
-                    del complex._molecules[index]
+                del complex._molecules[index]
 
-        await self.update_complexes(*to_update)
+            if self.complex_num_frames[complex.index] == 0:
+                to_remove.add(complex.index)
+                to_update.discard(complex.index)
+            else:
+                to_update.add(complex.index)
+
+        if to_update:
+            await self.update_complexes(*to_update)
+
+        if to_remove:
+            remove_complexes = []
+            for index in to_remove:
+                remove_complexes.append(self.selected_complexes[index])
+                self.selected_indices.remove(index)
+                del self.selected_complexes[index]
+                del self.complex_is_conformer[index]
+                del self.complex_num_frames[index]
+                del self.ignore_next_update[index]
+
+            await self.remove_from_workspace(remove_complexes)
+            await self.refresh_complexes()
+            await self.ws_send('select-complexes', self.selected_indices)
+
         await self.update_table()
 
     async def split_frames(self, data):

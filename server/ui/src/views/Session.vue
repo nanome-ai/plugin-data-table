@@ -35,7 +35,7 @@ const toggleSelectionMode = () => {
 const confirmDelete = e => {
   confirm.require({
     target: e.currentTarget,
-    message: 'Are you sure you want to delete the selected frame(s)?',
+    message: `Are you sure you want to delete the selected frame(s)? \nIf there are no frames left, the entry will be removed from Nanome.`,
     icon: 'pi pi-trash',
     acceptClass: 'p-button-danger',
     acceptLabel: 'Delete',
