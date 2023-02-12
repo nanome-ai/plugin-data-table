@@ -33,6 +33,9 @@ class PropertiesHelper:
         self.temp_sdf = tempfile.NamedTemporaryFile(delete=False, suffix='.sdf', dir=self.temp_dir.name)
 
         self.api_cache = {}
+        self.smiles_to_property_cache = {}
+        self.smiles_to_image_cache = {}
+
         self.properties = [
             Property('MW', '%.3f', Desc.MolWt),
             Property('logP', '%.3f', lambda mol: mDesc.CalcCrippenDescriptors(mol)[0]),
@@ -90,7 +93,7 @@ class PropertiesHelper:
 
     def fetch_property(self, endpoint, prop, mol):
         name = endpoint['name']
-        smiles = Chem.MolToSmiles(mol)
+        smiles = Chem.MolToSmiles(mol, isomericSmiles=True)
         cache_id = f'{name}:{smiles}'
         cache = self.api_cache.get(cache_id)
 
@@ -151,15 +154,30 @@ class PropertiesHelper:
         return cache['data'][prop]
 
     def calculate_properties(self, mol):
+        Chem.AssignStereochemistryFrom3D(mol)
+        smiles = Chem.MolToSmiles(mol, isomericSmiles=True)
+        cache = self.smiles_to_property_cache.get(smiles)
+
+        if cache:
+            return cache
+
         properties = {}
         for name, fmt, fn in self.properties:
             value = fn(mol)
             value = 'ERR' if  value is None else fmt % value
             properties[name] = value
+
+        self.smiles_to_property_cache[smiles] = properties
         return properties
 
     def render_image(self, mol):
         Chem.AssignStereochemistryFrom3D(mol)
+        smiles = Chem.MolToSmiles(mol, isomericSmiles=True)
+        cache = self.smiles_to_image_cache.get(smiles)
+
+        if cache:
+            return cache
+
         Chem.rdCoordGen.AddCoords(mol)
         mol = Draw.rdMolDraw2D.PrepareMolForDrawing(mol)
 
@@ -178,4 +196,7 @@ class PropertiesHelper:
         svg2png(bytestring=svg, write_to=png.name, output_width=width*2, output_height=height*2)
 
         with open(png.name, 'rb') as f:
-            return base64.b64encode(f.read()).decode('utf-8')
+            data = base64.b64encode(f.read()).decode('utf-8')
+            self.smiles_to_image_cache[smiles] = data
+
+        return data

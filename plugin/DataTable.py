@@ -206,21 +206,28 @@ class DataTable(nanome.AsyncPluginInstance):
     async def add_column(self, data, update=True):
         name = data['name']
         values = data['values']
+        has_changes = False
 
         for complex in self.selected_complexes.values():
             if self.complex_is_conformer[complex.index]:
                 molecule = next(complex.molecules)
                 for i, associateds in enumerate(molecule.associateds):
-                    id = f'{complex.index}-{i}'
-                    associateds[name] = str(values[id])
+                    value = str(values.get(f'{complex.index}-{i}', ''))
+                    if value != associateds.get(name):
+                        associateds[name] = value
+                        has_changes = True
             else:
                 for i, molecule in enumerate(complex.molecules):
-                    id = f'{complex.index}-{i}'
-                    molecule.associated[name] = str(values[id])
+                    value = str(values.get(f'{complex.index}-{i}', ''))
+                    if value != molecule.associated.get(name):
+                        molecule.associated[name] = value
+                        has_changes = True
 
-        if update:
+        if has_changes and update:
             await self.update_complexes()
             await self.update_table(False)
+
+        return has_changes
 
     async def delete_frames(self, ids):
         indices = [self.get_complex_frame(id) for id in ids]
@@ -362,13 +369,14 @@ class DataTable(nanome.AsyncPluginInstance):
     async def calculate_properties(self):
         # property_name -> complex_frame_id -> value
         properties = {}
+        has_changes = False
 
         for complex in self.selected_complexes.values():
             try:
                 complex.io.to_sdf(self.temp_sdf.name)
                 supplier = Chem.SDMolSupplier(self.temp_sdf.name)
             except:
-                return
+                continue
 
             for i, mol in enumerate(supplier):
                 if mol is None:
@@ -383,10 +391,13 @@ class DataTable(nanome.AsyncPluginInstance):
                     properties[name][id] = mol_properties[name]
 
         for name in self.helper.property_names:
-            await self.add_column({'name': name, 'values': properties[name]}, False)
+            column = {'name': name, 'values': properties[name]}
+            changed = await self.add_column(column, False)
+            has_changes = has_changes or changed
 
-        await self.update_complexes()
-        await self.update_table(False)
+        if has_changes:
+            await self.update_complexes()
+            await self.update_table(False)
 
     async def update_images(self, complex):
         try:
