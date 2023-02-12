@@ -141,6 +141,12 @@ session.connect(props.id)
                   </span>
 
                   <label class="flex align-items-center">
+                    <i class="mr-2 pi pi-server" />
+                    <span class="mr-auto">Auto Calc Properties</span>
+                    <InputSwitch v-model="session.autoCalcProperties" />
+                  </label>
+
+                  <label class="flex align-items-center">
                     <i class="mr-2 pi pi-eye" />
                     <span class="mr-auto">Large Thumbnails</span>
                     <InputSwitch v-model="session.largeThumbnails" />
@@ -163,6 +169,7 @@ session.connect(props.id)
                   </label>
 
                   <Button
+                    v-if="!session.autoCalcProperties"
                     v-tooltip.bottom="'using RDKit'"
                     :disabled="session.hasRDKitProperties"
                     :loading="session.loading"

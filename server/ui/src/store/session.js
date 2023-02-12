@@ -69,6 +69,10 @@ const setupEventListeners = (store, ws) => {
     store.columnTypes = columnTypes
     store.selectColumns(selectedColumns)
     store.loading = false
+
+    if (store.autoCalcProperties && !store.hasRDKitProperties) {
+      store.calculateProperties()
+    }
   })
 
   ws.on(EVENT.IMAGE, ({ id, data }) => {
@@ -118,6 +122,7 @@ const createGraph = () => ({
 
 export const useSessionStore = defineStore('session', {
   state: () => ({
+    autoCalcProperties: true,
     columns: [],
     columnTypes: {},
     complexes: [],
@@ -147,7 +152,13 @@ export const useSessionStore = defineStore('session', {
       {
         key: 'data-table-settings',
         storage: localStorage,
-        paths: ['fontSize', 'hideColumns', 'largeThumbnails', 'showColumns']
+        paths: [
+          'autoCalcProperties',
+          'fontSize',
+          'hideColumns',
+          'largeThumbnails',
+          'showColumns'
+        ]
       }
     ]
   },
@@ -176,7 +187,9 @@ export const useSessionStore = defineStore('session', {
 
     hasRDKitProperties() {
       const columns = ['MW', 'logP', 'TPSA', 'HBA', 'HBD', 'RB', 'AR']
-      return columns.every(c => this.columns.includes(c))
+      return columns.every(c =>
+        this.frames.every(f => Object.keys(f).includes(c))
+      )
     },
 
     numericColumns() {
@@ -210,7 +223,6 @@ export const useSessionStore = defineStore('session', {
     },
 
     calculateProperties() {
-      this.selectedColumns.push('MW', 'logP', 'TPSA', 'HBA', 'HBD', 'RB', 'AR')
       this.loading = true
       this.ws.send(EVENT.CALCULATE_PROPERTIES)
     },
