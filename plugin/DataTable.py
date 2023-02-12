@@ -282,7 +282,7 @@ class DataTable(nanome.AsyncPluginInstance):
 
         if single:
             complex = Complex()
-            complex.name = source.name
+            complex.name = indices[0][0].name
             for source_complex, index in indices:
                 if source_complex.index != source_index:
                     source = source_complex.convert_to_frames()
@@ -296,7 +296,7 @@ class DataTable(nanome.AsyncPluginInstance):
                     source_index = source.index
                 complex = Complex()
                 molecule = source._molecules[index]
-                complex.name = molecule.associated[name_column]
+                complex.name = molecule.associated.get(name_column, source_complex.name)
                 complex.add_molecule(molecule)
                 complexes.append(complex)
 
@@ -406,11 +406,7 @@ class DataTable(nanome.AsyncPluginInstance):
         except:
             return
 
-        if len(supplier) == 0:
-            return
-
-        for i in range(len(supplier)):
-            mol = supplier[i]
+        for i, mol in enumerate(supplier):
             if mol is None:
                 continue
 
