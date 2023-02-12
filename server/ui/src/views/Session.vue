@@ -62,7 +62,6 @@ session.connect(props.id)
       option-label="name"
       option-value="index"
       placeholder="click here"
-      scroll-height="500px"
       @change="e => session.selectComplexes(e.value)"
     />
   </IntroPanel>
@@ -102,7 +101,6 @@ session.connect(props.id)
                   option-label="name"
                   option-value="index"
                   placeholder="select an entry"
-                  scroll-height="500px"
                   @change="e => session.selectComplexes(e.value)"
                 />
                 <label>Entries</label>
@@ -126,7 +124,6 @@ session.connect(props.id)
                       :max-selected-labels="0.1"
                       class="w-full p-inputwrapper-filled"
                       placeholder="toggle columns"
-                      scroll-height="500px"
                       selected-items-label="toggle columns"
                       @change="e => session.selectColumns(e.value)"
                     />

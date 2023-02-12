@@ -264,7 +264,6 @@ const roundValue = value => {
             :max-selected-labels="0.1"
             class="w-full p-inputwrapper-filled"
             placeholder="select columns"
-            scroll-height="500px"
             selected-items-label="{0} columns"
           />
           <label>Axes</label>
@@ -282,7 +281,6 @@ const roundValue = value => {
             option-value="id"
             class="w-full p-inputwrapper-filled"
             placeholder="all frames"
-            scroll-height="500px"
             selected-items-label="{0} frames"
           />
           <label>Frames</label>
@@ -342,7 +340,6 @@ const roundValue = value => {
             option-value="id"
             class="w-full p-inputwrapper-filled"
             placeholder="all frames"
-            scroll-height="500px"
             selected-items-label="{0} frames"
           />
           <label>Frames</label>

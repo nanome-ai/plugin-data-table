@@ -34,6 +34,9 @@ import Skeleton from 'primevue/skeleton'
 import ToggleButton from 'primevue/togglebutton'
 import Tooltip from 'primevue/tooltip'
 
+Dropdown.props.scrollHeight.default = '500px'
+MultiSelect.props.scrollHeight.default = '500px'
+
 import { Chart } from 'chart.js'
 Chart.defaults.color = '#ccc'
 
