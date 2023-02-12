@@ -124,6 +124,13 @@ class DataTable(nanome.AsyncPluginInstance):
         items = [{'name': c.full_name, 'index': c.index} for c in complexes]
         await self.ws_send('complexes', items)
 
+        indices = [c.index for c in complexes]
+        selected_indices = list(set(self.selected_indices) & set(indices))
+
+        if len(selected_indices) != len(self.selected_indices):
+            await self.ws_send('select-complexes', selected_indices)
+            await self.select_complexes(selected_indices)
+
     def on_complex_list_changed(self):
         self.refresh_complexes()
 
