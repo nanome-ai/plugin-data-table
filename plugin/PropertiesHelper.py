@@ -84,10 +84,6 @@ class PropertiesHelper:
                 self.properties.append(p)
 
     @property
-    def num_props(self):
-        return len(self.properties)
-
-    @property
     def property_names(self):
         return [p.name for p in self.properties]
 
