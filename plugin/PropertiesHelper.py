@@ -22,7 +22,7 @@ Draw.DrawingOptions.atomLabelFontSize = 40
 Draw.DrawingOptions.dotsPerAngstrom = 100
 Draw.DrawingOptions.bondLineWidth = 8
 
-API_CACHE_TIME = timedelta(seconds=1)
+API_CACHE_TIME = 30
 API_SETTINGS = os.path.join(os.path.dirname(__file__), '..', 'config.json')
 
 Property = namedtuple('Property', ['name', 'format', 'fn'])
@@ -93,25 +93,30 @@ class PropertiesHelper:
         cache_id = f'{name}:{smiles}'
         cache = self.api_cache.get(cache_id)
 
-        if cache is None or datetime.now() - cache['time'] > API_CACHE_TIME:
+        if cache is None or datetime.now() > cache['expiration']:
             url = endpoint['url']
             method = endpoint['method']
             data = endpoint['data']
+            headers = endpoint.get('headers', {})
 
             try:
                 if data == 'smiles' and method == 'GET':
                     url = url.replace(':smiles', quote(smiles))
-                    json = requests.get(url).json()
+                    result = requests.get(url, headers=headers).json()
 
                 elif data == 'smiles' and method == 'POST':
-                    payload = endpoint['payload'].replace(':smiles', smiles)
-                    headers = {'Content-Type': 'application/json'}
-                    json = requests.post(url, headers=headers, data=payload).json()
+                    payload = endpoint['payload']
+                    if type(payload) != str:
+                        payload = json.dumps(payload)
+                    payload = payload.replace(':smiles', smiles)
+                    if headers.get('Content-Type') != 'application/json':
+                        payload = json.loads(payload)
+                    result = requests.post(url, headers=headers, data=payload).json()
 
                 elif data == 'sdf' and method == 'POST':
                     Chem.SDWriter(self.temp_sdf.name).write(mol)
                     files = {'file': open(self.temp_sdf.name, 'rb')}
-                    json = requests.post(url, files=files).json()
+                    result = requests.post(url, headers=headers, files=files).json()
 
                 else:
                     Logs.error(f'Unsupported request type: {method} {data} on {name}')
@@ -123,18 +128,24 @@ class PropertiesHelper:
 
             data = {}
             for item, info in endpoint['properties'].items():
-                value = json
+                value = result
                 data[item] = None
 
                 try:
                     for path in info['path'].replace('][', '].[').split('.'):
-                        match = re.search(r'([^\[]+)?(?:\[(\d+)\])?', path)
-                        (key, index) = match.groups()
+                        match = re.search(r'([^\[]+)?(?:\[(?:(\d+)|(.+?))\])?', path)
+                        (key, index, query) = match.groups()
 
                         if key is not None:
                             value = value.get(key)
                         if index is not None:
                             value = value[int(index)]
+                        if query is not None:
+                            q_key, q_value = query.split('=', 1)
+                            for v in value:
+                                if v.get(q_key) == q_value:
+                                    value = v
+                                    break
 
                     if type(value) not in [str, int, float, bool]:
                         raise TypeError
@@ -144,7 +155,8 @@ class PropertiesHelper:
                 except:
                     Logs.error(f'Invalid path for {item} on {name}')
 
-            cache = { 'time': datetime.now(), 'data': data }
+            cache_time = timedelta(seconds=endpoint.get('cache_time', API_CACHE_TIME))
+            cache = { 'expiration': datetime.now() + cache_time, 'data': data }
             self.api_cache[cache_id] = cache
 
         return cache['data'][prop]
