@@ -17,7 +17,7 @@ onMounted(() => {
     <form class="flex flex-column" @submit.prevent="$router.push(`/${id}`)">
       <div class="mb-3 text-xl">Enter an ID to connect:</div>
       <InputText v-model="id" class="mb-2" type="text" />
-      <Button class="text-center" type="submit">Connect</Button>
+      <Button class="text-center" label="Connect" type="submit" />
     </form>
   </IntroPanel>
 </template>

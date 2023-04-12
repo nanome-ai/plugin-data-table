@@ -7,6 +7,7 @@ import { useSessionStore } from '../store/session'
 import ComplexGraph from '../components/ComplexGraph.vue'
 import ComplexTable from '../components/ComplexTable.vue'
 import EditFrame from '../components/EditFrame.vue'
+import Ketcher from '../components/Ketcher.vue'
 import NewColumn from '../components/NewColumn.vue'
 import IntroPanel from '../components/IntroPanel.vue'
 
@@ -235,10 +236,10 @@ session.connect(props.id)
             <Button
               :disabled="!session.selectedFrames.length"
               class="mx-2 p-button-danger"
+              icon="pi pi-trash"
+              label="Delete"
               @click="confirmDelete"
-            >
-              <i class="mr-2 pi pi-trash" /> Delete
-            </Button>
+            />
             <Menu
               ref="duplicate"
               :model="[
@@ -258,10 +259,10 @@ session.connect(props.id)
             <Button
               :disabled="!session.selectedFrames.length"
               class="mx-2"
+              icon="pi pi-clone"
+              label="Duplicate"
               @click="e => $refs.duplicate.toggle(e)"
-            >
-              <i class="mr-2 pi pi-clone" /> Duplicate
-            </Button>
+            />
             <Menu
               ref="split"
               :model="[
@@ -281,32 +282,38 @@ session.connect(props.id)
             <Button
               :disabled="!session.selectedFrames.length"
               class="mx-2"
+              icon="pi pi-clone"
+              label="Split"
               @click="e => $refs.split.toggle(e)"
-            >
-              <i class="mr-2 pi pi-clone" /> Split
-            </Button>
+            />
             <Button
               :disabled="!session.selectedFrames.length"
               class="mx-2"
+              icon="pi pi-eye-slash"
+              label="Hide"
               @click="session.hideSelection"
-            >
-              <i class="mr-2 pi pi-eye-slash" /> Hide
-            </Button>
+            />
           </template>
 
           <Button
             v-if="session.hiddenFrames.length"
             class="mx-2 p-button-outlined"
+            icon="pi pi-eye"
+            label="Unhide All"
             @click="session.unhideAll"
-          >
-            <i class="mr-2 pi pi-eye" /> Unhide All
-          </Button>
+          />
 
-          <Button class="mx-2 p-button-outlined" @click="toggleSelectionMode">
-            {{ session.selectionMode ? 'Cancel' : 'Selection Mode' }}
-          </Button>
+          <Button
+            class="mx-2 p-button-outlined"
+            :icon="session.selectionMode ? 'pi pi-times' : 'pi pi-check-square'"
+            :label="session.selectionMode ? 'Cancel' : 'Selection Mode'"
+            @click="toggleSelectionMode"
+          />
 
-          <EditFrame v-if="!session.selectionMode" />
+          <template v-if="!session.selectionMode">
+            <EditFrame />
+            <Ketcher />
+          </template>
         </div>
 
         <Sidebar v-model:visible="showFullscreenGraph" position="full">

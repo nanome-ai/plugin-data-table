@@ -112,6 +112,8 @@ class DataTable(nanome.AsyncPluginInstance):
                 self.refresh_complexes()
             elif type == 'add-column':
                 await self.add_column(data)
+            elif type == 'add-smiles':
+                await self.add_smiles(data)
             elif type == 'calculate-properties':
                 await self.calculate_properties()
             elif type == 'delete-frames':
@@ -243,6 +245,34 @@ class DataTable(nanome.AsyncPluginInstance):
             await self.update_table(False)
 
         return has_changes
+
+    async def add_smiles(self, data):
+        smiles = data['smiles']
+        hydrogens = data['hydrogens']
+        align_to_index = data['align_to']
+
+        existing_complexes = await self.request_complex_list()
+        ids = [int(c.name[4:]) for c in existing_complexes if c.name.startswith('VNM-')]
+        max_id = max(ids) if ids else 0
+        add_complexes = []
+
+        for s in smiles.split('.'):
+            complex = self.helper.complex_from_smiles(s, hydrogens)
+            complex.name = f'VNM-{max_id + 1:04}'
+
+            if align_to_index is not None:
+                align_to = next(c for c in existing_complexes if c.index == align_to_index)
+                complex.position = align_to.position
+                complex.rotation = align_to.rotation
+
+            add_complexes.append(complex)
+            max_id += 1
+
+        added_complexes = await self.add_to_workspace(add_complexes)
+        added_indices = [c.index for c in added_complexes]
+        selected_indices = [*self.selected_indices, *added_indices]
+        await self.ws_send('select-complexes', selected_indices)
+        await self.select_complexes(selected_indices)
 
     async def delete_frames(self, ids):
         indices = [self.get_entry_and_frame_index(id) for id in ids]
@@ -389,6 +419,7 @@ class DataTable(nanome.AsyncPluginInstance):
         # property_name -> complex_frame_id -> value
         properties = {}
         has_changes = False
+        all_properties = ['SMILES', *self.helper.property_names]
 
         for entry in self.selected_entries.values():
             complex = entry.complex
@@ -405,12 +436,12 @@ class DataTable(nanome.AsyncPluginInstance):
                 id = f'{complex.index}-{i}'
                 mol_properties = self.helper.calculate_properties(mol)
 
-                for name in self.helper.property_names:
+                for name in all_properties:
                     if name not in properties:
                         properties[name] = {}
                     properties[name][id] = mol_properties[name]
 
-        for name in self.helper.property_names:
+        for name in all_properties:
             column = {'name': name, 'values': properties[name]}
             changed = await self.add_column(column, False)
             has_changes = has_changes or changed

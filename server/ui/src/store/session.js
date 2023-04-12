@@ -136,6 +136,7 @@ export const useSessionStore = defineStore('session', {
     loading: false,
     nameColumn: null,
     showColumns: [],
+    sketchSmiles: null,
     selectedColumns: [],
     selectedComplexes: [],
     selectedFrame: null,
@@ -265,6 +266,11 @@ export const useSessionStore = defineStore('session', {
     // #endregion
 
     // #region selection
+    addSmiles(smiles, align_to = null, hydrogens = false) {
+      this.loading = true
+      this.ws.send(EVENT.ADD_SMILES, { smiles, align_to, hydrogens })
+    },
+
     deleteSelection() {
       this.loading = true
       this.ws.send(EVENT.DELETE_FRAMES, this.selectedFrameIds)

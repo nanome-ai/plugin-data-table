@@ -1,7 +1,8 @@
+from nanome.api.structure import Complex
 from nanome.util import Logs
 
 from rdkit import Chem
-from rdkit.Chem import Draw
+from rdkit.Chem import AllChem, Draw
 import rdkit.Chem.Descriptors as Desc
 import rdkit.Chem.rdMolDescriptors as mDesc
 
@@ -169,7 +170,7 @@ class PropertiesHelper:
         if cache:
             return cache
 
-        properties = {}
+        properties = { 'SMILES': smiles }
         for name, fmt, fn in self.properties:
             value = fn(mol)
             value = 'ERR' if  value is None else fmt % value
@@ -177,6 +178,22 @@ class PropertiesHelper:
 
         self.smiles_to_property_cache[smiles] = properties
         return properties
+
+    def complex_from_smiles(self, smiles, hydrogens=True):
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            return None
+
+        mol = Chem.AddHs(mol)
+        AllChem.EmbedMolecule(mol)
+        if not hydrogens:
+            mol = Chem.RemoveHs(mol)
+
+        with Chem.SDWriter(self.temp_sdf.name) as w:
+            w.SetForceV3000(True)
+            w.write(mol)
+
+        return Complex.io.from_sdf(path=self.temp_sdf.name)
 
     def render_image(self, mol):
         Chem.AssignStereochemistryFrom3D(mol)
