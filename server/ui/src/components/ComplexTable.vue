@@ -150,7 +150,7 @@ const resetFilter = filter => {
             :disabled="!data.SMILES"
             class="p-button-secondary p-button-text"
             icon="pi pi-pencil"
-            @click="session.sketchSmiles = data.SMILES"
+            @click="session.sketchFrom(data)"
           />
         </template>
       </Column>
