@@ -44,7 +44,9 @@ class PropertiesHelper:
             Property('HBA', '%d', mDesc.CalcNumHBA),
             Property('HBD', '%d', mDesc.CalcNumHBD),
             Property('RB', '%d', mDesc.CalcNumRotatableBonds),
-            Property('AR', '%d', mDesc.CalcNumAromaticRings)
+            Property('AR', '%d', mDesc.CalcNumAromaticRings),
+            Property('InChI', '%s', Chem.MolToInchi),
+            Property('InChIKey', '%s', Chem.MolToInchiKey),
         ]
 
         if not os.path.exists(API_SETTINGS):
