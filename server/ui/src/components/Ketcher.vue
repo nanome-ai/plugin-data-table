@@ -47,7 +47,10 @@ async function save() {
     @hide="session.clearSketch()"
   >
     <template #header>Sketch Molecule</template>
-    <iframe id="ketcher" src="/ketcher/index.html" />
+    <iframe
+      id="ketcher"
+      src="/ketcher/index.html?hiddenControls=arom,dearom,miew,enhanced-stereo"
+    />
 
     <template #footer>
       <div class="flex align-items-bottom text-left">
