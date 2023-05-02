@@ -251,20 +251,17 @@ class DataTable(nanome.AsyncPluginInstance):
         hydrogens = data['hydrogens']
         align_to_index = data['align_to']
 
+        if align_to_index is not None:
+            [align_to] = await self.request_complexes([align_to_index])
+
         existing_complexes = await self.request_complex_list()
         ids = [int(c.name[4:]) for c in existing_complexes if c.name.startswith('VNM-')]
         max_id = max(ids) if ids else 0
         add_complexes = []
 
         for s in smiles.split('.'):
-            complex = self.helper.complex_from_smiles(s, hydrogens)
+            complex = self.helper.complex_from_smiles(s, align_to, hydrogens)
             complex.name = f'VNM-{max_id + 1:04}'
-
-            if align_to_index is not None:
-                align_to = next(c for c in existing_complexes if c.index == align_to_index)
-                complex.position = align_to.position
-                complex.rotation = align_to.rotation
-
             add_complexes.append(complex)
             max_id += 1
 
@@ -423,13 +420,9 @@ class DataTable(nanome.AsyncPluginInstance):
 
         for entry in self.selected_entries.values():
             complex = entry.complex
-            try:
-                complex.io.to_sdf(self.temp_sdf.name)
-                supplier = Chem.SDMolSupplier(self.temp_sdf.name)
-            except:
-                continue
+            mols = self.helper.complex_to_mols(complex)
 
-            for i, mol in enumerate(supplier):
+            for i, mol in enumerate(mols):
                 if mol is None:
                     continue
 
