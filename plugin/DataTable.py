@@ -1,6 +1,7 @@
 import nanome
 from nanome.api.structure import Complex
 from nanome.util import async_callback, Logs
+from nanome.util.enums import NotificationTypes
 
 from rdkit import Chem
 
@@ -261,9 +262,16 @@ class DataTable(nanome.AsyncPluginInstance):
 
         for s in smiles.split('.'):
             complex = self.helper.complex_from_smiles(s, align_to, hydrogens)
+            if not complex:
+                continue
             complex.name = f'VNM-{max_id + 1:04}'
             add_complexes.append(complex)
             max_id += 1
+
+        if not add_complexes:
+            self.send_notification(NotificationTypes.error, "Unable to load invalid structure")
+            await self.update_table(False)
+            return
 
         added_complexes = await self.add_to_workspace(add_complexes)
         added_indices = [c.index for c in added_complexes]
