@@ -251,6 +251,7 @@ class DataTable(nanome.AsyncPluginInstance):
         smiles = data['smiles']
         hydrogens = data['hydrogens']
         align_to_index = data['align_to']
+        align_to = None
 
         if align_to_index is not None:
             [align_to] = await self.request_complexes([align_to_index])
