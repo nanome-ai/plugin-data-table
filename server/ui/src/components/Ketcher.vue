@@ -5,12 +5,14 @@ import { useSessionStore } from '../store/session'
 const session = useSessionStore()
 const ketcher = shallowRef(null)
 const visible = ref(false)
+const loading = ref(false)
 
 watch(
   () => session.sketchSmiles,
   value => {
     if (value === null) return
     visible.value = true
+    loading.value = true
   }
 )
 
@@ -22,11 +24,13 @@ function load() {
     }
     ketcher.value = iframe.contentWindow.ketcher
     ketcher.value.setMolecule(session.sketchSmiles)
+    loading.value = false
   }
 }
 
 async function save() {
   const smiles = await ketcher.value.getSmiles()
+  if (!smiles) return
   session.addSmiles(smiles)
   visible.value = false
 }
@@ -80,7 +84,12 @@ async function save() {
             label="Cancel"
             @click="visible = false"
           />
-          <Button icon="pi pi-save" label="Save" @click="save" />
+          <Button
+            :disabled="loading"
+            icon="pi pi-save"
+            label="Save"
+            @click="save"
+          />
         </div>
       </div>
     </template>

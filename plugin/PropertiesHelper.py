@@ -183,7 +183,7 @@ class PropertiesHelper:
 
     def complex_from_smiles(self, smiles, align_to_complex=None, hydrogens=True):
         mol = Chem.MolFromSmiles(smiles)
-        if mol is None:
+        if not smiles or mol is None:
             return None
 
         mol = Chem.AddHs(mol)
