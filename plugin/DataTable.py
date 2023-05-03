@@ -13,8 +13,32 @@ import string
 import tempfile
 import urllib.request
 import websockets
+from dataclasses import dataclass
 
 from .PropertiesHelper import PropertiesHelper
+
+
+@dataclass
+class Entry:
+    complex: Complex
+    num_frames: int = 0
+    ignore_next_update: int = 0
+
+    @property
+    def current_frame(self):
+        if self.is_conformer:
+            return next(self.complex.molecules).current_conformer
+        return self.complex.current_frame
+
+    @property
+    def current_num_frames(self):
+        if self.is_conformer:
+            return next(self.complex.molecules).conformer_count
+        return len(list(self.complex.molecules))
+
+    @property
+    def is_conformer(self):
+        return len(list(self.complex.molecules)) == 1
 
 
 class DataTable(nanome.AsyncPluginInstance):
@@ -31,22 +55,18 @@ class DataTable(nanome.AsyncPluginInstance):
 
         # If 'data-table-server' not available on local docker network,
         # use external url as server_url
-        priority_server_host = 'data-table-server'
+        self.server_url = 'data-table-server'
         protocol = 'https' if self.https else 'http'
         try:
-            urllib.request.urlopen(f'{protocol}://{priority_server_host}')
+            urllib.request.urlopen(f'{protocol}://{self.server_url}')
         except urllib.error.URLError:
             self.server_url = self.url
-        else:
-            self.server_url = priority_server_host
 
         self.session = ''.join(random.choices(string.ascii_lowercase, k=4))
 
-        self.selected_complex = None
-        self.selected_frame = None
-        self.selected_is_conformer = False
-        self.selected_num_frames = 0
-        self.ignore_next_update = 0
+        self.selected_entry_index: int = None
+        self.selected_indices: list[int] = []
+        self.selected_entries: dict[str, Entry] = {}
 
         await self.ws_connect()
         self.on_run()
@@ -89,17 +109,15 @@ class DataTable(nanome.AsyncPluginInstance):
             Logs.debug('recv', type, data)
 
             if type == 'join':
-                self.update_complexes()
+                self.refresh_complexes()
             elif type == 'add-column':
                 await self.add_column(data)
             elif type == 'calculate-properties':
                 await self.calculate_properties()
             elif type == 'delete-frames':
                 await self.delete_frames(data)
-            elif type == 'reorder-frames':
-                await self.reorder_frames(data)
-            elif type == 'select-complex':
-                await self.select_complex(data)
+            elif type == 'select-complexes':
+                await self.select_complexes(data)
             elif type == 'select-frame':
                 await self.select_frame(data)
             elif type == 'split-frames':
@@ -120,126 +138,183 @@ class DataTable(nanome.AsyncPluginInstance):
             await self.ws.close()
 
     @async_callback
-    async def update_complexes(self):
-        complexes = await self.request_complex_list()
+    async def refresh_complexes(self):
+        complexes: list[Complex] = await self.request_complex_list()
         items = [{'name': c.full_name, 'index': c.index} for c in complexes]
         await self.ws_send('complexes', items)
 
+        indices = [c.index for c in complexes]
+        selected_indices = list(set(self.selected_indices) & set(indices))
+
+        if len(selected_indices) != len(self.selected_indices):
+            await self.ws_send('select-complexes', selected_indices)
+            await self.select_complexes(selected_indices)
+
     def on_complex_list_changed(self):
-        self.update_complexes()
+        self.refresh_complexes()
 
     @async_callback
-    async def on_complex_updated(self, complex):
+    async def on_complex_updated(self, complex: Complex):
         Logs.debug('complex updated', complex.index)
-        if complex.index != self.selected_complex.index:
+        if complex.index not in self.selected_indices:
             return
 
-        self.selected_complex = complex
-        if self.ignore_next_update:
-            self.ignore_next_update -= 1
+        entry = self.selected_entries[complex.index]
+        entry.complex = complex
+        if entry.ignore_next_update:
+            entry.ignore_next_update -= 1
             return
 
-        if self.selected_is_conformer:
-            num_frames = next(complex.molecules).conformer_count
-        else:
-            num_frames = len(list(complex.molecules))
-
-        if num_frames != self.selected_num_frames:
-            await self.select_complex(complex.index)
-        else:
-            frame = self.get_selected_frame(complex)
-            await self.ws_send('select-frame', frame)
-
-    def get_selected_frame(self, complex):
-        if self.selected_is_conformer:
-            return next(complex.molecules).current_conformer
-        return complex.current_frame
-
-    async def select_complex(self, index):
-        complexes = await self.request_complexes([index])
-        if not complexes:
+        num_frames = entry.current_num_frames
+        if num_frames != entry.num_frames:
+            entry.num_frames = num_frames
+            await self.update_table()
             return
 
-        complex = complexes[0]
-        self.selected_complex = complex
-        self.selected_is_conformer = len(list(complex.molecules)) == 1
-        complex.register_complex_updated_callback(self.on_complex_updated)
+        if complex.index != self.selected_entry_index:
+            return
+
+        id = f'{complex.index}-{entry.current_frame}'
+        await self.ws_send('select-frame', id)
+
+    def get_entry_and_frame_index(self, id):
+        entry_index, frame_index = map(int, id.split('-'))
+        entry = self.selected_entries[entry_index]
+        return entry, frame_index
+
+    async def select_complexes(self, indices):
+        add_indices = list(set(indices) - set(self.selected_indices))
+        remove_indices = list(set(self.selected_indices) - set(indices))
+        self.selected_indices = indices
+
+        if add_indices:
+            complexes: list[Complex] = await self.request_complexes(add_indices)
+
+            for complex in complexes:
+                entry = Entry(complex)
+                entry.num_frames = entry.current_num_frames
+                self.selected_entries[complex.index] = entry
+                complex.register_complex_updated_callback(self.on_complex_updated)
+
+        if remove_indices:
+            for index in remove_indices:
+                del self.selected_entries[index]
+
+            if self.selected_entry_index in remove_indices:
+                self.selected_entry_index = None
 
         await self.update_table()
 
-    async def select_frame(self, index):
-        if self.selected_is_conformer:
-            next(self.selected_complex.molecules).set_current_conformer(index)
-        else:
-            self.selected_complex.set_current_frame(index)
+    async def select_frame(self, id):
+        entry, frame = self.get_entry_and_frame_index(id)
+        complex = entry.complex
+        self.selected_entry_index = complex.index
 
-        await self.update_complex()
+        if entry.is_conformer:
+            next(complex.molecules).set_current_conformer(frame)
+        else:
+            complex.set_current_frame(frame)
+
+        await self.update_complexes(complex.index)
 
     async def add_column(self, data, update=True):
         name = data['name']
         values = data['values']
+        has_changes = False
 
-        if self.selected_is_conformer:
-            molecule = next(self.selected_complex.molecules)
-            for i, associateds in enumerate(molecule.associateds):
-                associateds[name] = str(values[i])
-        else:
-            for i, molecule in enumerate(self.selected_complex.molecules):
-                molecule.associated[name] = str(values[i])
+        for entry in self.selected_entries.values():
+            complex = entry.complex
+            if entry.is_conformer:
+                molecule = next(complex.molecules)
+                for i, associateds in enumerate(molecule.associateds):
+                    value = str(values.get(f'{complex.index}-{i}', ''))
+                    if value != associateds.get(name):
+                        associateds[name] = value
+                        has_changes = True
+            else:
+                for i, molecule in enumerate(complex.molecules):
+                    value = str(values.get(f'{complex.index}-{i}', ''))
+                    if value != molecule.associated.get(name):
+                        molecule.associated[name] = value
+                        has_changes = True
 
-        if update:
-            await self.update_complex()
+        if has_changes and update:
+            await self.update_complexes()
             await self.update_table(False)
 
-    async def delete_frames(self, indices):
-        indices = sorted(indices, reverse=True)
-        if self.selected_is_conformer:
-            molecule = next(self.selected_complex.molecules)
-            for index in indices:
+        return has_changes
+
+    async def delete_frames(self, ids):
+        indices = [self.get_entry_and_frame_index(id) for id in ids]
+        indices = sorted(indices, key=lambda x: x[1], reverse=True)
+        to_update = set()
+        to_remove = set()
+
+        for entry, index in indices:
+            complex = entry.complex
+            entry.num_frames -= 1
+
+            if entry.is_conformer:
+                molecule = next(complex.molecules)
                 molecule.delete_conformer(index)
-        else:
-            for index in indices:
-                del self.selected_complex._molecules[index]
+            else:
+                del complex._molecules[index]
 
-        await self.update_complex()
-        await self.update_table()
+            if entry.num_frames == 0:
+                to_remove.add(complex.index)
+                to_update.discard(complex.index)
+            else:
+                to_update.add(complex.index)
 
-    async def reorder_frames(self, indices):
-        if self.selected_is_conformer:
-            molecule = next(self.selected_complex.molecules)
-            num_frames = molecule.conformer_count
-            for i, index in enumerate(indices):
-                molecule.copy_conformer(index, num_frames + i)
-            for _ in range(num_frames):
-                molecule.delete_conformer(0)
-        else:
-            molecules = list(self.selected_complex.molecules)
-            self.selected_complex._molecules = [molecules[i] for i in indices]
-            for molecule in self.selected_complex.molecules:
-                molecule.index = -1
+        if to_update:
+            await self.update_complexes(*to_update)
 
-        await self.update_complex()
+        if self.selected_entry_index in to_remove:
+            self.selected_entry_index = None
+
+        if to_remove:
+            remove_complexes = []
+            for index in to_remove:
+                remove_complexes.append(self.selected_entries[index].complex)
+                self.selected_indices.remove(index)
+                del self.selected_entries[index]
+
+            await self.remove_from_workspace(remove_complexes)
+            await self.refresh_complexes()
+            await self.ws_send('select-complexes', self.selected_indices)
+
         await self.update_table()
 
     async def split_frames(self, data):
-        indices = data['indices']
+        ids = data['ids']
         single = data['single']
         remove = data['remove']
         name_column = data['name_column']
-        source = self.selected_complex.convert_to_frames()
+
+        indices = [self.get_entry_and_frame_index(id) for id in ids]
+        source = None
+        source_index = None
         complexes = []
 
         if single:
             complex = Complex()
-            complex.name = source.name
-            for index in indices:
+            complex.name = indices[0][0].complex.name
+            for entry, index in indices:
+                source_complex = entry.complex
+                if source_complex.index != source_index:
+                    source = source_complex.convert_to_frames()
+                    source_index = source.index
                 complex.add_molecule(source._molecules[index])
             complexes.append(complex)
         else:
-            for index in indices:
+            for entry, index in indices:
+                source_complex = entry.complex
+                if source_complex.index != source_index:
+                    source = source_complex.convert_to_frames()
+                    source_index = source.index
                 complex = Complex()
                 molecule = source._molecules[index]
-                complex.name = molecule.associated[name_column]
+                complex.name = molecule.associated.get(name_column, source_complex.name)
                 complex.add_molecule(molecule)
                 complexes.append(complex)
 
@@ -247,84 +322,111 @@ class DataTable(nanome.AsyncPluginInstance):
         await self.update_structures_deep(complexes)
 
         if remove:
-            await self.delete_frames(indices)
+            await self.delete_frames(ids)
 
     async def update_frame(self, data):
-        index = data['index']
-        del data['index']
+        entry, index = self.get_entry_and_frame_index(data['id'])
+        complex = entry.complex
+        del data['id']
 
-        if self.selected_is_conformer:
-            molecule = next(self.selected_complex.molecules)
+        if entry.is_conformer:
+            molecule = next(complex.molecules)
             for name, value in data.items():
                 molecule.associateds[index][name] = value
         else:
-            molecule = self.selected_complex._molecules[index]
+            molecule = complex._molecules[index]
             molecule.associated.update(data)
 
-        await self.update_complex()
+        await self.update_complexes(complex.index)
 
-    async def update_complex(self):
-        complexes = await self.request_complex_list()
-        complex = next(c for c in complexes if c.index == self.selected_complex.index)
-        self.selected_complex.position = complex.position
-        self.selected_complex.rotation = complex.rotation
-        self.ignore_next_update += 1
-        await self.update_structures_deep([self.selected_complex])
+    async def update_complexes(self, *indices):
+        if not indices:
+            indices = self.selected_indices
+
+        complexes: list[Complex] = await self.request_complex_list()
+        to_update = []
+
+        for index in indices:
+            complex = next(c for c in complexes if c.index == index)
+            entry = self.selected_entries[index]
+            entry.complex.position = complex.position
+            entry.complex.rotation = complex.rotation
+            entry.ignore_next_update += 1
+            to_update.append(entry.complex)
+
+        await self.update_structures_deep(to_update)
 
     async def update_table(self, update_images=True):
-        frame = self.get_selected_frame(self.selected_complex)
+        if self.selected_entry_index:
+            entry = self.selected_entries[self.selected_entry_index]
+            id = f'{entry.complex.index}-{entry.current_frame}'
 
-        complex = self.selected_complex.convert_to_frames()
-        complex.index = self.selected_complex.index
-        self.selected_num_frames = len(list(complex.molecules))
+        complexes = []
         frames = []
 
-        for i, mol in enumerate(complex.molecules):
-            frames.append({'index': i, **mol.associated})
+        for index, entry in self.selected_entries.items():
+            complex = entry.complex.convert_to_frames()
+            complex.index = index
+            complexes.append(complex)
+
+            for i, mol in enumerate(complex.molecules):
+                frames.append({
+                    'id': f'{index}-{i}',
+                    'frame': f'{complex.full_name} - {i+1}',
+                    **mol.associated
+                })
 
         await self.ws_send('frames', frames)
-        await self.ws_send('select-frame', frame)
+
+        if self.selected_entry_index:
+            await self.ws_send('select-frame', id)
 
         if update_images:
-            await self.update_images(complex)
+            for complex in complexes:
+                await self.update_images(complex)
 
     async def calculate_properties(self):
-        try:
-            self.selected_complex.io.to_sdf(self.temp_sdf.name)
-            supplier = Chem.SDMolSupplier(self.temp_sdf.name)
-        except:
-            return
-
+        # property_name -> complex_frame_id -> value
         properties = {}
-        for name in self.helper.property_names:
-            properties[name] = [''] * len(supplier)
+        has_changes = False
 
-        for i, mol in enumerate(supplier):
-            if mol is None:
+        for entry in self.selected_entries.values():
+            complex = entry.complex
+            try:
+                complex.io.to_sdf(self.temp_sdf.name)
+                supplier = Chem.SDMolSupplier(self.temp_sdf.name)
+            except:
                 continue
 
-            mol_properties = self.helper.calculate_properties(mol)
-            for name in self.helper.property_names:
-                properties[name][i] = mol_properties[name]
+            for i, mol in enumerate(supplier):
+                if mol is None:
+                    continue
+
+                id = f'{complex.index}-{i}'
+                mol_properties = self.helper.calculate_properties(mol)
+
+                for name in self.helper.property_names:
+                    if name not in properties:
+                        properties[name] = {}
+                    properties[name][id] = mol_properties[name]
 
         for name in self.helper.property_names:
-            await self.add_column({'name': name, 'values': properties[name]}, False)
+            column = {'name': name, 'values': properties[name]}
+            changed = await self.add_column(column, False)
+            has_changes = has_changes or changed
 
-        await self.update_complex()
-        await self.update_table(False)
+        if has_changes:
+            await self.update_complexes()
+            await self.update_table(False)
 
-    async def update_images(self, complex):
+    async def update_images(self, complex: Complex):
         try:
             complex.io.to_sdf(self.temp_sdf.name)
             supplier = Chem.SDMolSupplier(self.temp_sdf.name)
         except:
             return
 
-        if len(supplier) == 0:
-            return
-
-        for i in range(len(supplier)):
-            mol = supplier[i]
+        for i, mol in enumerate(supplier):
             if mol is None:
                 continue
 

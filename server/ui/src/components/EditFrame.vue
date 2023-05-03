@@ -27,12 +27,13 @@ const sync = () => {
 
 watch(() => session.selectedFrame, sync, { immediate: true })
 
-const selectIndex = dir => {
+const selectAdjFrame = dir => {
   const index = session.frames.indexOf(session.selectedFrame)
   let newIndex = index + dir
   if (newIndex < 0) newIndex += session.frames.length
   newIndex %= session.frames.length
-  session.selectFrame(newIndex)
+  const frame = session.frames[newIndex]
+  session.selectFrame(frame.id)
 }
 
 const save = () => {
@@ -59,12 +60,9 @@ const cancel = () => {
     maximizable
     modal
   >
-    <template #header>Edit Frame {{ data.index + 1 }}</template>
+    <template #header>Edit Frame {{ data.frame }}</template>
 
-    <Image
-      v-if="session.getImage(data.index)"
-      :src="session.getImage(data.index)"
-    />
+    <Image v-if="session.getImage(data.id)" :src="session.getImage(data.id)" />
     <div v-else class="h-6rem">
       <i class="pi pi-exclamation-triangle text-500 text-6xl" />
       <div>no image</div>
@@ -86,13 +84,13 @@ const cancel = () => {
           class="p-button-text"
           icon="pi pi-arrow-left"
           label="prev"
-          @click="selectIndex(-1)"
+          @click="selectAdjFrame(-1)"
         />
         <Button
           class="p-button-text"
           icon="pi pi-arrow-right"
           label="next"
-          @click="selectIndex(1)"
+          @click="selectAdjFrame(1)"
         />
 
         <Button class="ml-auto p-button-text" label="Cancel" @click="cancel" />

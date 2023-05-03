@@ -14,17 +14,17 @@ const setupEventListeners = (store, ws) => {
 
   ws.on(EVENT.FRAMES, frames => {
     // trim string columns
-    frames.forEach(o => {
-      Object.entries(o).forEach(([key, value]) => {
+    frames.forEach(f => {
+      Object.entries(f).forEach(([key, value]) => {
         if (typeof value !== 'string') return
-        o[key] = value.trim()
+        f[key] = value.trim()
       })
     })
 
     // get unique column names
     const columnSet = new Set([].concat(...frames.map(o => Object.keys(o))))
-    columnSet.delete('index')
-    const columns = Array.from(columnSet)
+    ;['id', 'Index', 'frame'].forEach(c => columnSet.delete(c))
+    const columns = Array.from(columnSet).sort((a, b) => a.localeCompare(b))
 
     // guess types of columns based on data
     const columnTypes = {}
@@ -39,17 +39,26 @@ const setupEventListeners = (store, ws) => {
       })
     })
 
-    if (!store.selectedColumns.length) {
-      const selectedColumns = [...columns]
-      // hide columns that have > 30 char data
-      frames.forEach(o => {
-        Object.entries(o).forEach(([key, value]) => {
-          if (columnTypes[key] === 'numeric' || value.length < 30) return
-          const index = selectedColumns.indexOf(key)
-          if (index !== -1) selectedColumns.splice(index, 1)
-        })
+    const selectedColumns = [...columns]
+    // hide columns that have > 30 char data
+    frames.forEach(o => {
+      Object.entries(o).forEach(([key, value]) => {
+        const hide =
+          key.length > 10 || columnTypes[key] !== 'numeric' || value.length > 30
+        if (!hide) return
+
+        const index = selectedColumns.indexOf(key)
+        if (index !== -1) selectedColumns.splice(index, 1)
       })
-      store.selectedColumns = selectedColumns
+    })
+
+    for (const column of store.hideColumns) {
+      const index = selectedColumns.indexOf(column)
+      if (index !== -1) selectedColumns.splice(index, 1)
+    }
+
+    for (const column of store.showColumns) {
+      if (!selectedColumns.includes(column)) selectedColumns.push(column)
     }
 
     const name = columns.find(c => c.toLowerCase() === 'name')
@@ -58,20 +67,25 @@ const setupEventListeners = (store, ws) => {
     store.frames = frames
     store.columns = columns
     store.columnTypes = columnTypes
+    store.selectColumns(selectedColumns)
     store.loading = false
+
+    if (store.autoCalcProperties && !store.hasRDKitProperties) {
+      store.calculateProperties()
+    }
   })
 
   ws.on(EVENT.IMAGE, ({ id, data }) => {
     store.images[id] = data
   })
 
-  ws.on(EVENT.SELECT_COMPLEX, index => {
-    store.selectedComplex = index
+  ws.on(EVENT.SELECT_COMPLEXES, indices => {
+    store.selectedComplexes = indices
     store.selectedColumns = []
   })
 
-  ws.on(EVENT.SELECT_FRAME, index => {
-    store.selectFrame(index, false)
+  ws.on(EVENT.SELECT_FRAME, id => {
+    store.selectFrame(id, false)
   })
 
   ws.on(EVENT.UPDATE_FRAME, data => {
@@ -108,6 +122,7 @@ const createGraph = () => ({
 
 export const useSessionStore = defineStore('session', {
   state: () => ({
+    autoCalcProperties: true,
     columns: [],
     columnTypes: {},
     complexes: [],
@@ -115,12 +130,14 @@ export const useSessionStore = defineStore('session', {
     frames: [],
     graphs: [createGraph()],
     hiddenFrames: [],
+    hideColumns: [],
     images: {},
     largeThumbnails: false,
     loading: false,
     nameColumn: null,
+    showColumns: [],
     selectedColumns: [],
-    selectedComplex: null,
+    selectedComplexes: [],
     selectedFrame: null,
     selectedFrames: [],
     selectedGraph: null,
@@ -135,21 +152,34 @@ export const useSessionStore = defineStore('session', {
       {
         key: 'data-table-settings',
         storage: localStorage,
-        paths: ['fontSize', 'largeThumbnails']
+        paths: [
+          'autoCalcProperties',
+          'fontSize',
+          'hideColumns',
+          'largeThumbnails',
+          'showColumns'
+        ]
       }
     ]
   },
 
   getters: {
     displayColumns() {
-      return this.columns.filter(c => this.selectedColumns.includes(c))
+      const columns = this.columns.filter(
+        c => this.selectedColumns.includes(c) && c !== this.nameColumn
+      )
+      columns.unshift(this.nameColumn)
+      return columns
+    },
+
+    displayFrames() {
+      return this.frames.filter(f => !this.hiddenFrames.includes(f.id))
     },
 
     getImage() {
-      const complexId = this.selectedComplex
       const prefix = 'data:image/png;base64,'
       return id => {
-        const image = this.images[`${complexId}-${id}`]
+        const image = this.images[id]
         if (!image) return null
         return prefix + image
       }
@@ -157,15 +187,17 @@ export const useSessionStore = defineStore('session', {
 
     hasRDKitProperties() {
       const columns = ['MW', 'logP', 'TPSA', 'HBA', 'HBD', 'RB', 'AR']
-      return columns.every(c => this.columns.includes(c))
+      return columns.every(c =>
+        this.frames.every(f => Object.keys(f).includes(c))
+      )
     },
 
     numericColumns() {
       return this.columns.filter(c => this.columnTypes[c] === 'numeric')
     },
 
-    selectedFrameIndices() {
-      return this.selectedFrames.map(f => f.index)
+    selectedFrameIds() {
+      return this.selectedFrames.map(f => f.id)
     }
   },
 
@@ -191,9 +223,23 @@ export const useSessionStore = defineStore('session', {
     },
 
     calculateProperties() {
-      this.selectedColumns.push('MW', 'logP', 'TPSA', 'HBA', 'HBD', 'RB', 'AR')
       this.loading = true
       this.ws.send(EVENT.CALCULATE_PROPERTIES)
+    },
+
+    selectColumns(columns) {
+      this.selectedColumns = columns
+      for (const column of this.columns) {
+        if (columns.includes(column)) {
+          const index = this.hideColumns.indexOf(column)
+          if (index !== -1) this.hideColumns.splice(index, 1)
+          if (!this.showColumns.includes(column)) this.showColumns.push(column)
+        } else {
+          const index = this.showColumns.indexOf(column)
+          if (index !== -1) this.showColumns.splice(index, 1)
+          if (!this.hideColumns.includes(column)) this.hideColumns.push(column)
+        }
+      }
     },
     // #endregion
 
@@ -201,7 +247,7 @@ export const useSessionStore = defineStore('session', {
     addGraph(selectedOnly) {
       const graph = createGraph()
       if (selectedOnly) {
-        graph.frames = this.selectedFrameIndices
+        graph.frames = this.selectedFrameIds
       }
       this.graphs.push(graph)
     },
@@ -221,30 +267,30 @@ export const useSessionStore = defineStore('session', {
     // #region selection
     deleteSelection() {
       this.loading = true
-      this.ws.send(EVENT.DELETE_FRAMES, this.selectedFrameIndices)
+      this.ws.send(EVENT.DELETE_FRAMES, this.selectedFrameIds)
       this.selectedFrames = []
     },
 
     hideSelection() {
-      this.hiddenFrames.push(...this.selectedFrameIndices)
+      this.hiddenFrames.push(...this.selectedFrameIds)
       this.selectedFrames = []
     },
 
-    selectComplex(index) {
+    selectComplexes(indices) {
       this.frames = []
       this.selectedFrame = null
-      this.ws.send(EVENT.SELECT_COMPLEX, index)
+      this.ws.send(EVENT.SELECT_COMPLEXES, indices)
     },
 
-    selectFrame(index, send = true) {
-      this.selectedFrame = this.frames.find(f => f.index === index)
-      if (send) this.ws.send(EVENT.SELECT_FRAME, index)
+    selectFrame(id, send = true) {
+      this.selectedFrame = this.frames.find(f => f.id === id)
+      if (send) this.ws.send(EVENT.SELECT_FRAME, id)
     },
 
     splitSelection(single, remove) {
       this.loading = remove
       this.ws.send(EVENT.SPLIT_FRAMES, {
-        indices: this.selectedFrameIndices,
+        ids: this.selectedFrameIds,
         name_column: this.nameColumn,
         single,
         remove
@@ -253,7 +299,7 @@ export const useSessionStore = defineStore('session', {
     },
 
     updateFrame(data, send = true) {
-      const frame = this.frames.find(f => f.index === data.index)
+      const frame = this.frames.find(f => f.id === data.id)
       if (!frame) return
       Object.assign(frame, data)
       if (send) this.ws.send(EVENT.UPDATE_FRAME, data)

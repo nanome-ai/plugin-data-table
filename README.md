@@ -39,7 +39,7 @@ This plugin supports configuration to fetch chemical properties from external so
 `overwrite` - `true` will replace the default properties with the external ones. `false` will append external properties to the end of the list.\
 `endpoints` - list of url endpoints to fetch properties from.
 
-#### `endpoints`
+### `endpoints`
 
 An endpoint is a url that can be queried for chemical properties. Each endpoint can be used to populate multiple properties. The currently supported modes are `GET smiles`, `POST smiles`, and `POST sdf`, with a response type of `json`.
 
@@ -51,15 +51,31 @@ In `POST smiles` mode, the `payload` is expected to contain the string `:smiles`
 `url` - endpoint url\
 `method` - either `GET` or `POST`\
 `data` - either `sdf` or `smiles`\
-`payload` - for `POST smiles` requests, the json payload to send containing `:smiles`\
+`cache_time` - time in seconds to cache external properties for same SMILES (default 30).\
+`headers` - optional headers object to send with the request\
+`payload` - for `POST smiles` requests, the payload to send containing `:smiles`\
 `properties` - a mapping of property names to config
 
-##### `properties`
+#### `properties`
 
 The properties configuration allows one endpoint to populate multiple properties. Each property has a `path` to find the property in the response body. For example, if the endpoint response body is `{"properties":{"prop1":1}}`, the `path` would be `properties.prop1`.
 
 `format` - format string to format the unit. example `"%.3f"`\
 `path` - path to the property in the response body
+
+##### `path` syntax
+
+`path` supports dot notation, array indexing, and array searching.
+
+`path.to.prop` - dot notation\
+`path[0]` - array indexing\
+`path[key=value]` - array searching
+
+Dot notation: if the endpoint response body is `{"properties":{"prop1":1}}`, the `path` would be `properties.prop1`.
+
+Array indexing: if the endpoint response body is `{"properties":[1,2]}`, the `path` would be `properties[0]`.
+
+Array searching: if the endpoint response body is `{"properties":[{"key":"prop1","value":1},{"key":"prop2","value":2}]}`, the `path` would be `properties[key=prop1].value`.
 
 ## Development
 To run Data Table with autoreload:

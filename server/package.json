@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "dev": "nodemon --ignore \"ui/**\" src/server.js",
+    "dev": "nodemon --ignore ui/ src/server.js",
     "start": "node src/server.js"
   },
   "dependencies": {

@@ -18,7 +18,6 @@ const session = useSessionStore()
 const confirm = useConfirm()
 
 const settings = ref(null)
-const reorderMode = ref(false)
 const showGraphs = ref(false)
 
 const showFullscreenGraph = computed({
@@ -28,25 +27,6 @@ const showFullscreenGraph = computed({
   }
 })
 
-// const oldData = ref([])
-
-// const saveReorder = () => {
-//   loading.value = true
-//   oldData.value = [...data.value]
-//   const ids = data.value.map(f => f.index)
-//   ws.send(EVENT.REORDER_FRAMES, ids)
-//   reorderMode.value = false
-// }
-
-// const toggleReorderMode = () => {
-//   reorderMode.value = !reorderMode.value
-//   if (reorderMode.value) {
-//     oldData.value = [...data.value]
-//   } else {
-//     data.value = [...oldData.value]
-//   }
-// }
-
 const toggleSelectionMode = () => {
   session.selectionMode = !session.selectionMode
   session.selectedFrames = []
@@ -55,7 +35,7 @@ const toggleSelectionMode = () => {
 const confirmDelete = e => {
   confirm.require({
     target: e.currentTarget,
-    message: 'Are you sure you want to delete the selected frame(s)?',
+    message: `Are you sure you want to delete the selected frame(s)? \nIf there are no frames left, the entry will be removed from Nanome.`,
     icon: 'pi pi-trash',
     acceptClass: 'p-button-danger',
     acceptLabel: 'Delete',
@@ -72,17 +52,17 @@ session.connect(props.id)
 
 <template>
   <IntroPanel
-    v-if="session.status === STATUS.ONLINE && !session.selectedComplex"
+    v-if="session.status === STATUS.ONLINE && !session.selectedComplexes.length"
   >
     <div class="mb-3 text-xl">Select an entry to begin</div>
-    <Dropdown
-      v-model="session.selectedComplex"
+    <MultiSelect
+      v-model="session.selectedComplexes"
       :options="session.complexes"
       class="w-full"
       option-label="name"
       option-value="index"
       placeholder="click here"
-      @change="({ value }) => session.selectComplex(value)"
+      @change="e => session.selectComplexes(e.value)"
     />
   </IntroPanel>
 
@@ -114,16 +94,16 @@ session.connect(props.id)
           <div class="flex flex-column min-w-0">
             <div class="mt-2 flex justify-content-center gap-2">
               <span class="p-float-label">
-                <Dropdown
-                  v-model="session.selectedComplex"
+                <MultiSelect
+                  v-model="session.selectedComplexes"
                   :options="session.complexes"
                   class="w-15rem p-inputwrapper-filled"
                   option-label="name"
                   option-value="index"
                   placeholder="select an entry"
-                  @change="({ value }) => session.selectComplex(value)"
+                  @change="e => session.selectComplexes(e.value)"
                 />
-                <label>Entry</label>
+                <label>Entries</label>
               </span>
 
               <NewColumn />
@@ -139,12 +119,13 @@ session.connect(props.id)
                 <div class="mt-1 flex flex-column gap-3">
                   <span class="mt-3 p-float-label">
                     <MultiSelect
-                      v-model="session.selectedColumns"
+                      :model-value="session.selectedColumns"
                       :options="session.columns"
                       :max-selected-labels="0.1"
                       class="w-full p-inputwrapper-filled"
                       placeholder="toggle columns"
                       selected-items-label="toggle columns"
+                      @change="e => session.selectColumns(e.value)"
                     />
                     <label>Show Columns</label>
                   </span>
@@ -158,6 +139,12 @@ session.connect(props.id)
                     />
                     <label>Name Column</label>
                   </span>
+
+                  <label class="flex align-items-center">
+                    <i class="mr-2 pi pi-server" />
+                    <span class="mr-auto">Auto Calc Properties</span>
+                    <InputSwitch v-model="session.autoCalcProperties" />
+                  </label>
 
                   <label class="flex align-items-center">
                     <i class="mr-2 pi pi-eye" />
@@ -182,6 +169,7 @@ session.connect(props.id)
                   </label>
 
                   <Button
+                    v-if="!session.autoCalcProperties"
                     v-tooltip.bottom="'using RDKit'"
                     :disabled="session.hasRDKitProperties"
                     :loading="session.loading"
@@ -206,7 +194,6 @@ session.connect(props.id)
             <ComplexTable
               class="flex-grow-1"
               :multi-select="session.selectionMode"
-              :reorderable="reorderMode"
             />
           </div>
 
@@ -307,10 +294,6 @@ session.connect(props.id)
             </Button>
           </template>
 
-          <template v-else-if="reorderMode">
-            <Button class="mx-2" @click="saveReorder"> Save </Button>
-          </template>
-
           <Button
             v-if="session.hiddenFrames.length"
             class="mx-2 p-button-outlined"
@@ -319,23 +302,11 @@ session.connect(props.id)
             <i class="mr-2 pi pi-eye" /> Unhide All
           </Button>
 
-          <Button
-            v-if="!reorderMode"
-            class="mx-2 p-button-outlined"
-            @click="toggleSelectionMode"
-          >
+          <Button class="mx-2 p-button-outlined" @click="toggleSelectionMode">
             {{ session.selectionMode ? 'Cancel' : 'Selection Mode' }}
           </Button>
 
           <EditFrame v-if="!session.selectionMode" />
-
-          <!-- <Button
-            v-if="!session.selectionMode"
-            class="mx-2 p-button-outlined"
-            @click="toggleReorderMode"
-          >
-            {{ reorderMode ? 'Cancel' : 'Reorder Mode' }}
-          </Button> -->
         </div>
 
         <Sidebar v-model:visible="showFullscreenGraph" position="full">

@@ -4,6 +4,7 @@ dist
 /.vscode/*
 !/.vscode/launch.json
 !/.vscode/tasks.json
+/config.json
 /docker/.cachebust
 /docker/redeploy.sh
 *.log

@@ -76,11 +76,10 @@ const onMessage = ws => e => {
     case 'add-column':
     case 'calculate-properties':
     case 'delete-frames':
-    case 'reorder-frames':
     case 'split-frames':
       send_plugin(ws, type, data)
       break
-    case 'select-complex':
+    case 'select-complexes':
     case 'select-frame':
     case 'update-frame':
       broadcast(ws, type, data)

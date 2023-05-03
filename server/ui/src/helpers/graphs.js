@@ -13,13 +13,14 @@ export const useRadarData = (session, graph) => {
     }
 
     const frames = session.frames.filter(
-      f => !g.frames.length || g.frames.includes(f.index)
+      f => !g.frames.length || g.frames.includes(f.id)
     )
     const datasets = []
     graphData.value = { labels: cols, datasets }
 
-    const minValues = cols.map(c => Math.min(...frames.map(f => f[c])))
-    const maxValues = cols.map(c => Math.max(...frames.map(f => f[c])))
+    const values = cols.map(c => frames.map(f => f[c]).filter(Number.isFinite))
+    const minValues = cols.map((c, i) => Math.min(...values[i]))
+    const maxValues = cols.map((c, i) => Math.max(...values[i]))
     const diffValues = cols.map((c, i) => maxValues[i] - minValues[i])
 
     for (const frame of frames) {
@@ -27,7 +28,7 @@ export const useRadarData = (session, graph) => {
       const data = cols.map((c, i) => {
         const d = diffValues[i]
         let r = d === 0 ? 1 : (frame[c] - minValues[i]) / d
-        return { index: frame.index, r }
+        return { id: frame.id, r }
       })
       datasets.push({ data })
     }
@@ -47,9 +48,9 @@ export const useScatterData = (session, graph) => {
     }
 
     const data = session.frames
-      .filter(f => !g.frames.length || g.frames.includes(f.index))
+      .filter(f => !g.frames.length || g.frames.includes(f.id))
       .map(item => ({
-        index: item.index,
+        id: item.id,
         x: +item[g.xColumn],
         y: +item[g.yColumn]
       }))
