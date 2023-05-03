@@ -1,7 +1,8 @@
+from nanome.api.structure import Complex
 from nanome.util import Logs
 
 from rdkit import Chem
-from rdkit.Chem import Draw
+from rdkit.Chem import AllChem, Draw, rdFMCS
 import rdkit.Chem.Descriptors as Desc
 import rdkit.Chem.rdMolDescriptors as mDesc
 
@@ -43,7 +44,9 @@ class PropertiesHelper:
             Property('HBA', '%d', mDesc.CalcNumHBA),
             Property('HBD', '%d', mDesc.CalcNumHBD),
             Property('RB', '%d', mDesc.CalcNumRotatableBonds),
-            Property('AR', '%d', mDesc.CalcNumAromaticRings)
+            Property('AR', '%d', mDesc.CalcNumAromaticRings),
+            Property('InChI', '%s', Chem.MolToInchi),
+            Property('InChIKey', '%s', Chem.MolToInchiKey),
         ]
 
         if not os.path.exists(API_SETTINGS):
@@ -169,7 +172,7 @@ class PropertiesHelper:
         if cache:
             return cache
 
-        properties = {}
+        properties = { 'SMILES': smiles }
         for name, fmt, fn in self.properties:
             value = fn(mol)
             value = 'ERR' if  value is None else fmt % value
@@ -177,6 +180,45 @@ class PropertiesHelper:
 
         self.smiles_to_property_cache[smiles] = properties
         return properties
+
+    def complex_from_smiles(self, smiles, align_to_complex=None, hydrogens=True):
+        mol = Chem.MolFromSmiles(smiles)
+        if not smiles or mol is None:
+            return None
+
+        mol = Chem.AddHs(mol)
+        AllChem.EmbedMolecule(mol)
+
+        if align_to_complex is not None:
+            align_to_mol = next(self.complex_to_mols(align_to_complex))
+            align_to_mol.UpdatePropertyCache()
+
+            mcs = rdFMCS.FindMCS([align_to_mol, mol])
+            core = Chem.MolFromSmarts(mcs.smartsString)
+
+            molMatch = mol.GetSubstructMatch(core)
+            alignMatch = align_to_mol.GetSubstructMatch(core)
+
+            AllChem.AlignMol(mol, align_to_mol, atomMap=list(zip(molMatch, alignMatch)))
+
+        if not hydrogens:
+            mol = Chem.RemoveHs(mol)
+
+        with Chem.SDWriter(self.temp_sdf.name) as w:
+            w.SetForceV3000(True)
+            w.write(mol)
+
+        complex = Complex.io.from_sdf(path=self.temp_sdf.name)
+        if align_to_complex is not None:
+            complex.position = align_to_complex.position
+            complex.rotation = align_to_complex.rotation
+
+        return complex
+
+    def complex_to_mols(self, complex: Complex):
+        complex.io.to_sdf(self.temp_sdf.name)
+        supplier = Chem.SDMolSupplier(self.temp_sdf.name)
+        return supplier
 
     def render_image(self, mol):
         Chem.AssignStereochemistryFrom3D(mol)

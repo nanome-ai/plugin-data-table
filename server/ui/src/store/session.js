@@ -136,6 +136,9 @@ export const useSessionStore = defineStore('session', {
     loading: false,
     nameColumn: null,
     showColumns: [],
+    sketchAlignTo: null,
+    sketchHydrogens: false,
+    sketchSmiles: null,
     selectedColumns: [],
     selectedComplexes: [],
     selectedFrame: null,
@@ -307,6 +310,29 @@ export const useSessionStore = defineStore('session', {
 
     unhideAll() {
       this.hiddenFrames = []
+    },
+    // #endregion
+
+    // #region sketch
+    addSmiles(smiles) {
+      this.loading = true
+      const align_to = this.sketchAlignTo
+      const hydrogens = this.sketchHydrogens
+      this.ws.send(EVENT.ADD_SMILES, { smiles, align_to, hydrogens })
+    },
+
+    clearSketch() {
+      this.sketchSmiles = null
+      this.sketchAlignTo = null
+    },
+
+    newSketch() {
+      this.sketchSmiles = ''
+    },
+
+    sketchFrom(frame) {
+      this.sketchSmiles = frame.SMILES
+      this.sketchAlignTo = +frame.id.split('-')[0]
     }
     // #endregion
   }

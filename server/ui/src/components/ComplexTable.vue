@@ -143,6 +143,17 @@ const resetFilter = filter => {
           <Checkbox v-model="selection" :value="data" @click.stop />
         </template>
       </Column>
+      <Column field="sketch" header="">
+        <template #body="{ data }">
+          <Button
+            v-tooltip.bottom="data.SMILES ? 'sketch from' : 'no SMILES'"
+            :disabled="!data.SMILES"
+            class="p-button-secondary p-button-text"
+            icon="pi pi-pencil"
+            @click="session.sketchFrom(data)"
+          />
+        </template>
+      </Column>
       <Column
         field="frame"
         header="Frame"

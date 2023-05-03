@@ -6,6 +6,7 @@ export const STATUS = {
 
 export const EVENT = {
   ADD_COLUMN: 'add-column',
+  ADD_SMILES: 'add-smiles',
   CALCULATE_PROPERTIES: 'calculate-properties',
   CLOSE: 'close',
   COMPLEXES: 'complexes',

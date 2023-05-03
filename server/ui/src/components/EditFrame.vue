@@ -48,9 +48,13 @@ const cancel = () => {
 </script>
 
 <template>
-  <Button class="mx-2 p-button-outlined" @click="visible = true">
-    {{ 'Edit Frame' }}
-  </Button>
+  <Button
+    :disabled="!session.selectedFrame"
+    class="mx-2 p-button-outlined"
+    icon="pi pi-list"
+    label="Edit Frame"
+    @click="visible = true"
+  />
 
   <Dialog
     v-model:visible="visible"
@@ -93,8 +97,18 @@ const cancel = () => {
           @click="selectAdjFrame(1)"
         />
 
-        <Button class="ml-auto p-button-text" label="Cancel" @click="cancel" />
-        <Button :disabled="!hasChanges" label="Save" @click="save" />
+        <Button
+          class="ml-auto p-button-text"
+          icon="pi pi-times"
+          label="Cancel"
+          @click="cancel"
+        />
+        <Button
+          :disabled="!hasChanges"
+          icon="pi pi-save"
+          label="Save"
+          @click="save"
+        />
       </div>
     </template>
   </Dialog>
