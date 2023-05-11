@@ -199,6 +199,7 @@ const resetFilter = filter => {
           <InputNumber
             v-if="session.columnTypes[col] === 'numeric'"
             v-model="filterModel.value"
+            :max-fraction-digits="10"
             class="p-column-filter"
             @keydown.enter="filterCallback"
           />

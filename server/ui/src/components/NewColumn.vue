@@ -105,6 +105,7 @@ const addColumn = () => {
             <InputNumber
               v-else
               v-model="data.value1"
+              :max-fraction-digits="10"
               class="w-full p-inputwrapper-filled"
               placeholder="enter a value"
             />
@@ -129,6 +130,7 @@ const addColumn = () => {
             <InputNumber
               v-else
               v-model="data.value2"
+              :max-fraction-digits="10"
               class="w-full p-inputwrapper-filled"
               placeholder="enter a value"
             />
