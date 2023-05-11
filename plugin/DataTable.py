@@ -383,7 +383,9 @@ class DataTable(nanome.AsyncPluginInstance):
         to_update = []
 
         for index in indices:
-            complex = next(c for c in complexes if c.index == index)
+            complex = next((c for c in complexes if c.index == index), None)
+            if not complex:
+                continue
             entry = self.selected_entries[index]
             entry.complex.position = complex.position
             entry.complex.rotation = complex.rotation
@@ -444,7 +446,7 @@ class DataTable(nanome.AsyncPluginInstance):
                     properties[name][id] = mol_properties[name]
 
         for name in all_properties:
-            column = {'name': name, 'values': properties[name]}
+            column = {'name': name, 'values': properties.get(name, '')}
             changed = await self.add_column(column, False)
             has_changes = has_changes or changed
 
