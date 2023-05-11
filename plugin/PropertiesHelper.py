@@ -2,7 +2,7 @@ from nanome.api.structure import Complex
 from nanome.util import Logs
 
 from rdkit import Chem
-from rdkit.Chem import AllChem, Draw, rdFMCS
+from rdkit.Chem import AllChem, Draw
 import rdkit.Chem.Descriptors as Desc
 import rdkit.Chem.rdMolDescriptors as mDesc
 
@@ -189,20 +189,33 @@ class PropertiesHelper:
         mol = Chem.AddHs(mol)
         AllChem.EmbedMolecule(mol)
 
+        if not hydrogens:
+            mol = Chem.RemoveHs(mol)
+
         if align_to_complex is not None:
             align_to_mol = next(self.complex_to_mols(align_to_complex))
             align_to_mol.UpdatePropertyCache()
 
-            mcs = rdFMCS.FindMCS([align_to_mol, mol])
-            core = Chem.MolFromSmarts(mcs.smartsString)
-
-            molMatch = mol.GetSubstructMatch(core)
-            alignMatch = align_to_mol.GetSubstructMatch(core)
-
-            AllChem.AlignMol(mol, align_to_mol, atomMap=list(zip(molMatch, alignMatch)))
-
-        if not hydrogens:
+            # remove hydrogens for alignment
             mol = Chem.RemoveHs(mol)
+            align_to_mol = Chem.RemoveHs(align_to_mol)
+
+            atomMap = None
+            try:
+                _, _, atomMap = AllChem.GetBestAlignmentTransform(mol, align_to_mol)
+            except:
+                try:
+                    # sometimes changing order of molecules helps
+                    _, _, atomMap = AllChem.GetBestAlignmentTransform(align_to_mol, mol)
+                    atomMap = [(b, a) for a, b in atomMap]
+                except:
+                    Logs.error(f'Failed to align {Chem.MolToSmiles(mol)} to {Chem.MolToSmiles(align_to_mol)}')
+
+            if atomMap:
+                AllChem.AlignMol(mol, align_to_mol, atomMap=atomMap)
+
+            if hydrogens:
+                mol = Chem.AddHs(mol)
 
         with Chem.SDWriter(self.temp_sdf.name) as w:
             w.SetForceV3000(True)
