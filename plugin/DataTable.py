@@ -446,7 +446,7 @@ class DataTable(nanome.AsyncPluginInstance):
                     properties[name][id] = mol_properties[name]
 
         for name in all_properties:
-            column = {'name': name, 'values': properties.get(name, '')}
+            column = {'name': name, 'values': properties.get(name, {})}
             changed = await self.add_column(column, False)
             has_changes = has_changes or changed
 
