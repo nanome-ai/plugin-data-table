@@ -24,4 +24,3 @@ RUN cd ui && npm install && npm run build
 EXPOSE ${HTTP_PORT} ${HTTPS_PORT}
 
 CMD npm run start ${ARGS}
-
